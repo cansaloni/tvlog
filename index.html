@@ -27,6 +27,10 @@
   .hrow{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
   h1{font-size:17px; margin:0; font-weight:650; letter-spacing:-.2px; white-space:nowrap}
   .stats{color:var(--dim); font-size:12.5px; margin-left:auto}
+  #avvisoLoc{background:rgba(255,138,76,.13); border:1px solid rgba(255,138,76,.45);
+             color:var(--drop); font-size:12px; padding:4px 10px; border-radius:99px;
+             cursor:pointer; white-space:nowrap}
+  #avvisoLoc:hover{background:rgba(255,138,76,.22)}
   input,select,textarea,button{font:inherit; color:inherit}
   .fld{background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:8px 11px; outline:none; min-width:0}
   .fld:focus{border-color:var(--acc)}
@@ -72,6 +76,12 @@
     .tools.aperta .sec{display:inline-block}
     .tools.aperta{padding-bottom:2px}
     #q{flex:1 1 100%}                       /* il filtro si prende tutta la riga */
+    /* Su telefono "Funzioni" sale accanto ad "Aggiungi serie": così voti e
+       ordinamento stanno insieme sulla riga dopo, e se ne guadagna una.
+       Si riordina solo la vista, il documento resta com'è.                 */
+    #bAdd{order:1} .sec2{order:2} #q{order:3} #fvoto{order:4} #sort{order:5}
+    .tools .sp{display:none}                /* niente spaziatore: qui si va a capo */
+    .tools .sec{order:6}
     #tabBar{display:flex; gap:6px; padding:8px 10px 0; overflow-x:auto}
     #tabBar button{flex:1 0 auto; background:var(--panel); border:1px solid var(--line);
       color:var(--dim); border-radius:10px; padding:8px 10px; font-size:12.5px; cursor:pointer;
@@ -231,6 +241,8 @@
   <div class="hrow">
     <h1>📺 Le mie serie</h1>
     <div class="stats" id="stats"></div>
+    <button id="avvisoLoc" hidden title="Senza account i dati restano solo qui">
+      ⚠ Non collegato · le modifiche restano su questo dispositivo</button>
   </div>
   <div class="tools">
     <button class="btn p" id="bAdd">+ Aggiungi serie</button>
@@ -251,7 +263,7 @@
       <option value="annoGiu">Dalle più recenti</option>
       <option value="annoSu">Dalle più vecchie</option>
       <option value="added">Data di aggiunta</option>
-      <option value="recent" selected>Modificate di recente</option>
+      <option value="recent" selected>Modifiche</option>
       <option value="title">Titolo A→Z</option>
       <option value="rating">Voto</option>
     </select>
@@ -335,7 +347,7 @@
   <a href="https://www.justwatch.com" target="_blank" rel="noopener" style="color:#6b7888">JustWatch</a>
   via TMDb.<br>
   Segnalazioni e suggerimenti: <span class="posta"></span>
-  · <span title="Serve a capire se un dispositivo sta usando una versione vecchia">versione del 27 ottobre 2026 · d</span>
+  · <span title="Serve a capire se un dispositivo sta usando una versione vecchia">versione del 27 ottobre 2026 · f</span>
 </footer>
 
 <div class="ov" id="ovAdd">
@@ -742,6 +754,10 @@ function render(){
       (g.done.length-mollate)+" concluse, "+g.uptodate.length+" in pari"+
       (mollate?", "+mollate+" mollate":"")
     : "";
+  // avviso discreto ma non ignorabile: senza account le modifiche non escono di qui
+  var av=document.getElementById("avvisoLoc");
+  var scollegato = db.shows.length && !(typeof connesso==="function" && connesso());
+  av.hidden=!scollegato;
   save();
   vetrina();
   window.scrollTo(0,y);
@@ -1896,6 +1912,7 @@ function accUI(){
 }
 document.getElementById("bAcc").onclick=function(){ accUI(); ovAcc.classList.add("on") };
 document.getElementById("bStart").onclick=function(){ accUI(); ovAcc.classList.add("on") };
+document.getElementById("avvisoLoc").onclick=function(){ accUI(); ovAcc.classList.add("on") };
 document.getElementById("bGuest").onclick=function(){
   // niente account: si lavora sulla copia locale, come prima
   document.getElementById("benvenuto").hidden=true;
