@@ -1,0 +1,2041 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Le mie serie</title>
+<meta name="theme-color" content="#0f1216">
+<style>
+  :root{
+    --bg:#0f1216; --panel:#171b21; --panel2:#1e242c; --line:#2a323c;
+    --txt:#e8edf3; --dim:#94a2b3; --acc:#4da3ff; --ok:#3ddc97; --warn:#ffb95e;
+    --plan:#b98cff; --drop:#ff8a4c; --epic:#ffd84d; --r:14px;
+  }
+  *{box-sizing:border-box}
+  /* senza questa, un display: esplicito batte l'attributo hidden */
+  [hidden]{display:none !important}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--txt);
+    font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-text-size-adjust:100%; -webkit-tap-highlight-color:transparent;
+  }
+  header{
+    position:sticky; top:0; z-index:30; background:rgba(15,18,22,.96);
+    backdrop-filter:blur(8px); border-bottom:1px solid var(--line); padding:10px 14px;
+  }
+  .hrow{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+  h1{font-size:17px; margin:0; font-weight:650; letter-spacing:-.2px; white-space:nowrap}
+  .stats{color:var(--dim); font-size:12.5px; margin-left:auto}
+  input,select,textarea,button{font:inherit; color:inherit}
+  .fld{background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:8px 11px; outline:none; min-width:0}
+  .fld:focus{border-color:var(--acc)}
+  #q{flex:1 1 170px}
+  .btn{background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:8px 12px; cursor:pointer; white-space:nowrap}
+  .btn:hover{background:#26303a}
+  .btn.p{background:var(--acc); border-color:var(--acc); color:#06121f; font-weight:600}
+  .btn.p:hover{filter:brightness(1.08)}
+  .btn.sm{padding:4px 9px; font-size:12.5px; border-radius:8px}
+  .btn.gh{background:transparent}
+  .tools{display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; align-items:center}
+  .tools .sp{margin-left:auto}
+
+  main{padding:14px; display:grid; gap:14px; align-items:start;
+       grid-template-columns:repeat(auto-fit,minmax(255px,1fr))}
+
+  /* ---- pagina di benvenuto, per chi arriva senza account ---- */
+  #benvenuto{padding:26px 16px 10px}
+  .bw{max-width:760px; margin:0 auto}
+  .bw h2{font-size:25px; margin:0 0 10px; letter-spacing:-.4px}
+  .occhiello{color:var(--dim); font-size:15px; margin:0 0 22px; line-height:1.55}
+  .bgrid{display:grid; gap:12px; grid-template-columns:repeat(4,1fr)}
+  @media (max-width:900px){ .bgrid{grid-template-columns:repeat(2,1fr)} }
+  @media (max-width:640px){ .bgrid{grid-template-columns:1fr} }
+  .bgrid>div{background:var(--panel); border:1px solid var(--line); border-radius:var(--r);
+             padding:13px 15px; font-size:13.4px; color:var(--dim); line-height:1.5}
+  .bgrid b{display:block; color:var(--txt); font-size:14px; margin-bottom:5px}
+  .bact{display:flex; gap:10px; margin:22px 0 0; flex-wrap:wrap}
+  .bpriv{color:#6b7888; font-size:12.3px; line-height:1.6; margin:20px 0 0;
+         border-top:1px solid var(--line); padding-top:14px}
+
+  /* ---- linguette: solo su schermo stretto ---- */
+  #tabBar{display:none}
+  .sec2{display:none}                      /* il tasto "Funzioni" serve solo su telefono */
+  /* Disposizione da telefono: schermo stretto (verticale) oppure schermo basso
+     (orizzontale). L'altezza ridotta distingue un cellulare coricato da un
+     tablet o da una finestra di computer, che larghi lo sono ma bassi no.   */
+  @media (max-width:640px), (max-height:520px) and (orientation:landscape){
+    main{grid-template-columns:1fr; padding:10px}
+    header{padding:8px 10px}
+    .sec2{display:inline-block}
+    .tools .sec{display:none}              /* i comandi secondari stanno nel menù */
+    .tools.aperta .sec{display:inline-block}
+    .tools.aperta{padding-bottom:2px}
+    #q{flex:1 1 100%}                       /* il filtro si prende tutta la riga */
+    #tabBar{display:flex; gap:6px; padding:8px 10px 0; overflow-x:auto}
+    #tabBar button{flex:1 0 auto; background:var(--panel); border:1px solid var(--line);
+      color:var(--dim); border-radius:10px; padding:8px 10px; font-size:12.5px; cursor:pointer;
+      white-space:nowrap; display:flex; align-items:center; gap:5px; justify-content:center}
+    #tabBar button.on{background:var(--panel2); color:var(--txt); border-color:#3a4654; font-weight:600}
+    #tabBar .pal{width:7px; height:7px; border-radius:50%; flex:none}
+    main>section.col{display:none}
+    main>section.col.attiva{display:block}
+    /* scorrendo in giù l'intestazione si ritira, le linguette restano in cima */
+    header{transition:transform .22s ease}
+    body.giu header{transform:translateY(-100%)}
+    #tabBar{position:sticky; top:0; z-index:25; padding-bottom:8px;
+            background:rgba(15,18,22,.96); backdrop-filter:blur(8px);
+            border-bottom:1px solid var(--line)}
+    main>section.col .chd{display:none}          /* il titolo lo dà già la linguetta */
+    /* su telefono una colonna non si richiude mai: la scelta della linguetta
+       comanda da sola. Serve !important perché la regola che nasconde le
+       colonne richiuse è scritta più avanti nel foglio di stile.            */
+    main>section.col .clist{display:flex !important}
+    .bw h2{font-size:21px}
+  }
+  section.col{background:var(--panel); border:1px solid var(--line); border-radius:var(--r); overflow:hidden}
+  .chd{display:flex; align-items:center; gap:8px; padding:11px 13px; border-bottom:1px solid var(--line); cursor:pointer; user-select:none}
+  .dot{width:9px; height:9px; border-radius:50%; flex:none}
+  .chd b{font-size:13.5px; font-weight:650; letter-spacing:.2px; text-transform:uppercase}
+  .cnt{margin-left:auto; color:var(--dim); font-size:12.5px; font-variant-numeric:tabular-nums}
+  .caret{color:var(--dim); font-size:11px; transition:transform .15s}
+  section.col.closed .caret{transform:rotate(-90deg)}
+  section.col.closed .clist{display:none}
+  .clist{padding:9px; display:flex; flex-direction:column; gap:8px; min-height:44px}
+  .empty{color:var(--dim); font-size:13px; padding:10px 6px; text-align:center}
+
+  /* ---- colore per stato della serie ---- */
+  .card{background:var(--panel2); border:1px solid var(--line); border-left:4px solid var(--line);
+        border-radius:11px; padding:9px 9px 9px 8px}
+  .card.st-done{background:linear-gradient(90deg,rgba(61,220,151,.09),rgba(61,220,151,0) 190px);
+                border-color:rgba(61,220,151,.28);  border-left-color:var(--ok)}
+  .card.st-part{background:linear-gradient(90deg,rgba(255,185,94,.10),rgba(255,185,94,0) 190px);
+                border-color:rgba(255,185,94,.28);  border-left-color:var(--warn)}
+  .card.st-plan{background:linear-gradient(90deg,rgba(185,140,255,.10),rgba(185,140,255,0) 190px);
+                border-color:rgba(185,140,255,.26); border-left-color:var(--plan)}
+  .card.st-up{  background:linear-gradient(90deg,rgba(77,163,255,.10),rgba(77,163,255,0) 190px);
+                border-color:rgba(77,163,255,.28);  border-left-color:var(--acc)}
+  /* serie epica: cornice dorata su tutti i lati, lo stato resta leggibile dalla barra */
+  .card.epic{border-color:var(--epic); box-shadow:0 0 14px rgba(255,216,77,.16)}
+  .card{position:relative}
+  .top{display:flex; gap:10px}
+  .del{
+    position:absolute; top:4px; right:4px; width:22px; height:22px; padding:0; line-height:1;
+    border:0; background:transparent; color:#5d6b7c; cursor:pointer; border-radius:6px;
+    font-size:13px; opacity:.55;
+  }
+  .del:hover{background:#4a2020; color:#ff9b9b; opacity:1}
+  .info{
+    padding:4px 9px; font-size:12.5px; border-radius:8px; border:1px solid var(--line);
+    background:transparent; color:var(--dim); text-decoration:none; white-space:nowrap;
+  }
+  .info:hover{background:#26303a; color:var(--acc); border-color:var(--acc)}
+  .ttl{padding-right:20px}
+  .pos{width:44px; height:64px; border-radius:7px; flex:none; background:#2b333d; object-fit:cover; display:block}
+  .ph{display:flex; align-items:center; justify-content:center; font-weight:700; color:#6d7b8b; font-size:15px}
+  .body{flex:1; min-width:0}
+  .ttl{font-weight:600; font-size:14.2px; line-height:1.25; overflow-wrap:anywhere}
+  .yr{color:var(--dim); font-weight:400; font-size:12.5px}
+  .meta{color:var(--dim); font-size:12.3px; margin-top:3px; font-variant-numeric:tabular-nums}
+  .bar{height:5px; background:#2f3946; border-radius:99px; margin-top:6px; overflow:hidden}
+  .bar>i{display:block; height:100%; background:var(--acc); border-radius:99px; transition:width .2s}
+  .acts{display:flex; gap:5px; margin-top:7px; flex-wrap:wrap}
+  .note{color:var(--warn); font-size:12.3px; margin-top:5px; font-style:italic; overflow-wrap:anywhere}
+  /* loghi delle piattaforme: in linea col titolo, non aggiungono altezza */
+  .piatt{display:inline-flex; gap:3px; vertical-align:-3px; margin-left:5px; text-decoration:none}
+  img.piat{width:16px; height:16px; border-radius:4px; display:block}
+  /* voto cliccabile: stelle in ordine inverso nel codice, così il passaggio
+     del mouse su una può illuminare anche quelle a sinistra */
+  .rate{display:inline-flex; flex-direction:row-reverse; vertical-align:-1px; white-space:nowrap}
+  .rate b{color:var(--warn); font-weight:400; font-size:13px; line-height:1; cursor:pointer; padding:0 1px}
+  .rate b.off{opacity:.22}
+  .rate b:hover, .rate b:hover ~ b{opacity:1}
+  .rate b.plus{font-size:12.5px; font-weight:700; padding-left:2px}
+  .rate.epic b{color:var(--epic); text-shadow:0 0 7px rgba(255,216,77,.45)}
+
+  /* ---- stagioni / episodi ---- */
+  .seas{margin-top:9px; border-top:1px solid var(--line); padding-top:7px}
+  .srow{display:flex; align-items:center; gap:8px; padding:5px 4px; border-radius:8px; cursor:pointer}
+  .srow:hover{background:#252e38}
+  .sname{font-size:13.3px; font-weight:550}
+  .sc{margin-left:auto; color:var(--dim); font-size:12px; font-variant-numeric:tabular-nums}
+  .scar{color:var(--dim); font-size:10px; width:10px; text-align:center; transition:transform .15s}
+  .srow.open .scar{transform:rotate(90deg)}
+  .cb{
+    width:17px; height:17px; border-radius:5px; border:1.5px solid #4a5665; flex:none;
+    display:flex; align-items:center; justify-content:center; font-size:11px; line-height:1;
+    color:#06121f; background:transparent; cursor:pointer;
+  }
+  .cb:hover{border-color:var(--acc)}
+  .cb.on{background:var(--ok); border-color:var(--ok)}
+  .cb.part{background:transparent; border-color:var(--warn); color:var(--warn); font-weight:700}
+  .eps{margin:2px 0 6px 12px; border-left:1px solid var(--line); padding-left:8px}
+  .erow{display:flex; align-items:center; gap:8px; padding:4px 3px; border-radius:7px; cursor:pointer; font-size:12.8px}
+  .erow:hover{background:#252e38}
+  .erow .en{color:var(--dim); font-variant-numeric:tabular-nums; flex:none}
+  .erow.seen .et{color:var(--dim)}
+  .et{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .erow.fut{opacity:.55}
+  .erow.fut .cb{border-style:dashed}
+  .when{margin-left:auto; flex:none; color:var(--acc); font-size:11px; padding:2px 5px; white-space:nowrap}
+  .upto{margin-left:auto; flex:none; color:#5d6b7c; font-size:11px; background:transparent; border:0;
+        cursor:pointer; padding:2px 5px; border-radius:6px}
+  .upto:hover{color:var(--acc); background:#2b3642}
+  .nostruct{color:var(--dim); font-size:12.3px; padding:4px 2px}
+
+  /* ---- pannello dettagli, dentro la card come quello delle stagioni ---- */
+  .det{margin-top:9px; border-top:1px solid var(--line); padding-top:6px}
+  .det label{display:block; font-size:11.3px; color:var(--dim); margin:7px 0 3px}
+  .det .fld{width:100%; padding:6px 9px; font-size:13px; border-radius:8px}
+  .det textarea.fld{resize:vertical}
+  .det .two{display:flex; gap:7px}
+  .det .two>div{flex:1; min-width:0}
+  .det .fin{color:#5d6b7c; font-size:11.3px; margin-top:7px; line-height:1.4}
+
+  .ov{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; z-index:60; padding:16px; overflow:auto}
+  .ov.on{display:block}
+  .modal{background:var(--panel); border:1px solid var(--line); border-radius:16px; max-width:520px; margin:6vh auto; padding:16px}
+  .modal h2{margin:0 0 12px; font-size:16px; overflow-wrap:anywhere}
+  .modal label{display:block; font-size:12.5px; color:var(--dim); margin:10px 0 4px}
+  .modal .fld{width:100%}
+  .rowf{display:flex; gap:8px}
+  .rowf>div{flex:1}
+  .mact{display:flex; gap:8px; margin-top:16px; flex-wrap:wrap}
+  .mact .sp{margin-left:auto}
+  .res{margin-top:10px; display:flex; flex-direction:column; gap:6px; max-height:46vh; overflow:auto}
+  .ri{display:flex; gap:9px; align-items:center; background:var(--panel2); border:1px solid var(--line);
+      border-radius:10px; padding:7px; cursor:pointer; text-align:left; width:100%}
+  .ri:hover{border-color:var(--acc)}
+  .ri .info{flex:none; align-self:center}
+  .ri img{width:34px; height:50px; object-fit:cover; border-radius:5px; flex:none; background:#2b333d}
+  .ri .n{font-weight:600; font-size:13.5px}
+  .ri .s{color:var(--dim); font-size:12px}
+  .src{font-size:10px; padding:1px 6px; border-radius:99px; margin-left:6px;
+       border:1px solid currentColor; vertical-align:1px; font-weight:600; letter-spacing:.3px}
+  .src.tmdb{color:#8fd6a0}
+  .src.tvmaze{color:#7fb8e8}
+  .src.omdb{color:#e8c86a}
+  .hint{color:var(--dim); font-size:12.3px; margin-top:8px}
+  .toast{position:fixed; left:50%; bottom:20px; transform:translate(-50%,14px); opacity:0;
+    background:#e8edf3; color:#111418; padding:9px 15px; border-radius:99px; font-size:13.5px;
+    font-weight:600; z-index:90; pointer-events:none; transition:.2s; max-width:80vw; text-align:center}
+  .toast.on{opacity:1; transform:translate(-50%,0)}
+  .toast.act{pointer-events:auto; display:flex; align-items:center; gap:10px}
+  .toast button{background:#111418; color:#fff; border:0; border-radius:99px; padding:5px 12px;
+                font-weight:600; font-size:12.5px; cursor:pointer}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hrow">
+    <h1>📺 Le mie serie</h1>
+    <div class="stats" id="stats"></div>
+  </div>
+  <div class="tools">
+    <button class="btn p" id="bAdd">+ Aggiungi serie</button>
+    <input id="q" class="fld" placeholder="Filtra: titolo italiano o originale…" autocomplete="off">
+    <select id="fvoto" class="fld" style="flex:none" title="Filtra per voto">
+      <option value="">Tutti i voti</option>
+      <option value="6">★★★★★+ epiche</option>
+      <option value="5">★★★★★ e più</option>
+      <option value="4">★★★★ e più</option>
+      <option value="3">★★★ e più</option>
+      <option value="2">★★ e più</option>
+      <option value="1">★ e più</option>
+      <option value="0">Senza voto</option>
+    </select>
+    <span class="sp"></span>
+    <select id="sort" class="fld" title="Ordinamento">
+      <option value="prog">Avanzamento</option>
+      <option value="annoGiu">Dalle più recenti</option>
+      <option value="annoSu">Dalle più vecchie</option>
+      <option value="added">Data di aggiunta</option>
+      <option value="recent" selected>Modificate di recente</option>
+      <option value="title">Titolo A→Z</option>
+      <option value="rating">Voto</option>
+    </select>
+    <button class="btn sec2" id="bMenu" title="Altre funzioni">☰ Funzioni</button>
+    <button class="btn sec" id="bExp" title="Salva un backup .json">⬇ Backup</button>
+    <button class="btn sec" id="bImp" title="Ripristina o unisci un backup">⬆ Ripristina</button>
+    <button class="btn sec" id="bAcc" title="Account e sincronizzazione">☁ Accedi</button>
+    <button class="btn sec" id="bRef" title="Ricontrolla tutte le serie: episodi nuovi e stato di produzione">⟳ Aggiorna tutte</button>
+    <button class="btn sec" id="bTvt" title="Scegli il file dell'archivio TV Time da importare">📺 Importa TV Time…</button>
+    <input type="file" id="fImp" accept=".json,application/json" hidden>
+    <input type="file" id="fTvt" accept=".json,application/json" hidden>
+  </div>
+</header>
+
+<section id="benvenuto" hidden>
+  <div class="bw">
+    <h2>Tieni il conto delle serie che guardi</h2>
+    <p class="occhiello">
+      tvlog ricorda quali episodi hai visto, dove ti sei fermato e cosa ti aspetta.
+      Niente consigli, niente classifiche, niente pubblicità: solo le tue serie.
+    </p>
+    <div class="bgrid">
+      <div><b>Quattro stati, una schermata</b>
+        Le serie che stai guardando, quelle da iniziare, quelle di cui hai visto
+        tutto il disponibile e quelle concluse — tutte sotto gli occhi insieme.</div>
+      <div><b>Episodio per episodio</b>
+        Spunti le singole puntate stagione per stagione, non solo "vista" o "non vista".
+        E sai sempre quando esce la prossima.</div>
+      <div><b>I dati li prendi dai database veri</b>
+        Cerchi il titolo, anche in italiano, e stagioni ed episodi arrivano da soli
+        da TMDb, TVmaze o IMDb. Niente da scrivere a mano.</div>
+      <div><b>Su tutti i tuoi dispositivi</b>
+        Con un account ritrovi le tue serie sul telefono e sul computer,
+        e puoi scaricarti una copia di tutto quando vuoi.</div>
+    </div>
+    <div class="bact">
+      <button class="btn p" id="bStart">Crea un account o accedi</button>
+      <button class="btn gh" id="bGuest">Provalo senza account</button>
+    </div>
+    <p class="bpriv">
+      Cosa conserviamo: la tua email, per farti entrare, e l'elenco delle serie che segni.
+      Nient'altro — nessun tracciamento, nessuna cessione a terzi. I dati stanno su un
+      server europeo e ognuno vede solo i propri. Puoi cancellare tutto in qualsiasi
+      momento dalla finestra dell'account.
+    </p>
+    <p class="bpriv" style="border:0; padding-top:0">
+      Hai trovato un errore, o ti manca qualcosa? Scrivi a <span class="posta"></span>.
+    </p>
+  </div>
+</section>
+
+<nav id="tabBar" hidden></nav>
+
+<main>
+  <section class="col" id="c-watching">
+    <div class="chd" data-t="watching"><span class="dot" style="background:var(--warn)"></span><b>In corso</b><span class="cnt"></span><span class="caret">▾</span></div>
+    <div class="clist"></div>
+  </section>
+  <section class="col" id="c-plan">
+    <div class="chd" data-t="plan"><span class="dot" style="background:var(--plan)"></span><b>Da vedere</b><span class="cnt"></span><span class="caret">▾</span></div>
+    <div class="clist"></div>
+  </section>
+  <section class="col" id="c-uptodate">
+    <div class="chd" data-t="uptodate" title="Viste tutte, ma la serie è ancora in produzione">
+      <span class="dot" style="background:var(--acc)"></span><b>In pari</b><span class="cnt"></span><span class="caret">▾</span></div>
+    <div class="clist"></div>
+  </section>
+  <section class="col" id="c-done">
+    <div class="chd" data-t="done"><span class="dot" style="background:var(--ok)"></span><b>Finite</b><span class="cnt"></span><span class="caret">▾</span></div>
+    <div class="clist"></div>
+  </section>
+</main>
+
+
+<footer style="padding:4px 14px 70px; color:#6b7888; font-size:11.5px; line-height:1.6">
+  Dati di <a href="https://www.tvmaze.com/" target="_blank" rel="noopener" style="color:#6b7888">TVmaze</a> (CC BY-SA),
+  <a href="https://www.themoviedb.org/" target="_blank" rel="noopener" style="color:#6b7888">TMDb</a> e
+  <a href="https://www.omdbapi.com/" target="_blank" rel="noopener" style="color:#6b7888">OMDb</a>.
+  This product uses the TMDb API but is not endorsed or certified by TMDb.<br>
+  Disponibilità sulle piattaforme: dati di
+  <a href="https://www.justwatch.com" target="_blank" rel="noopener" style="color:#6b7888">JustWatch</a>
+  via TMDb.<br>
+  Segnalazioni e suggerimenti: <span class="posta"></span>
+  · <span title="Serve a capire se un dispositivo sta usando una versione vecchia">versione del 27 ottobre 2026 · d</span>
+</footer>
+
+<div class="ov" id="ovAdd">
+  <div class="modal">
+    <h2>Aggiungi una serie</h2>
+    <div class="rowf">
+      <input id="sq" class="fld" placeholder="Scrivi il titolo, i risultati arrivano da soli…" autocomplete="off">
+      <select id="prov" class="fld" style="flex:none; max-width:150px" title="Fonte da interrogare per prima">
+        <option value="tmdb">TMDb · italiano</option>
+        <option value="tvmaze">TVmaze</option>
+        <option value="omdb">IMDb · via OMDb</option>
+      </select>
+      <button class="btn" id="bKeys" style="flex:none" title="Chiavi delle fonti">⚙ Chiavi</button>
+    </div>
+    <div class="res" id="res"></div>
+    <div class="hint" id="hintProv"></div>
+    <div id="keyBox" hidden>
+      <label>Chiavi delle fonti — tutte e tre sono già attive per tutti</label>
+      <div class="rowf" style="margin-bottom:6px">
+        <input id="tmdbKey" class="fld" placeholder="chiave TMDb tua · facoltativa" autocomplete="off">
+      </div>
+      <div class="rowf">
+        <input id="omdbKey" class="fld" placeholder="chiave OMDb tua · facoltativa" autocomplete="off">
+        <button class="btn" id="bKey" style="flex:none">Salva</button>
+      </div>
+      <div class="hint">
+        Non devi inserire niente: il sito usa già le sue chiavi e cerca in italiano.
+        Questi campi servono solo se vuoi usare una chiave tua — per esempio se fai
+        molte ricerche e quella condivisa raggiunge il limite giornaliero.
+        Resta su questo dispositivo e non finisce nei backup; svuotando il campo
+        si torna a quella condivisa.
+      </div>
+    </div>
+    <div class="mact">
+      <button class="btn gh" id="bManualToggle" title="Solo se la serie non esiste in nessun database">Non la trovo</button>
+      <span class="sp"></span>
+      <button class="btn gh" id="bCancel">Chiudi</button>
+    </div>
+    <div id="mManual" hidden style="border-top:1px solid var(--line); margin-top:12px; padding-top:4px">
+      <label>Titolo</label>
+      <input id="mT" class="fld" placeholder="Titolo della serie">
+      <div class="rowf">
+        <div><label>Anno</label><input id="mY" class="fld" placeholder="2008"></div>
+        <div><label>Episodi per stagione</label><input id="mS" class="fld" placeholder="7, 13, 13, 13, 16"></div>
+      </div>
+      <div class="mact"><span class="sp"></span><button class="btn p" id="bManualSave">Aggiungi a mano</button></div>
+    </div>
+  </div>
+</div>
+
+
+<div class="ov" id="ovAcc">
+  <div class="modal">
+    <h2>Account e sincronizzazione</h2>
+    <div id="accOff">
+      <div class="hint" style="margin-bottom:10px">
+        Con un account le tue serie stanno anche sul server: le ritrovi su qualsiasi dispositivo
+        e il backup manuale torna a essere una rete di sicurezza invece dell'unica copia.
+      </div>
+      <label>Email</label>
+      <input id="accMail" class="fld" type="email" autocomplete="username" placeholder="tu@esempio.it">
+      <label>Password</label>
+      <input id="accPass" class="fld" type="password" autocomplete="current-password" placeholder="almeno 8 caratteri">
+      <div class="mact">
+        <button class="btn" id="bReg">Crea l'account</button>
+        <span class="sp"></span>
+        <button class="btn gh" id="accClose1">Chiudi</button>
+        <button class="btn p" id="bLogin">Accedi</button>
+      </div>
+    </div>
+    <div id="accOn" hidden>
+      <div class="hint" id="accWho" style="margin-bottom:10px"></div>
+      <div class="res" id="accLog"></div>
+      <div class="mact">
+        <button class="btn" id="bLogout">Esci</button>
+        <span class="sp"></span>
+        <button class="btn gh" id="accClose2">Chiudi</button>
+        <button class="btn p" id="bSync">⇅ Sincronizza ora</button>
+      </div>
+      <div class="hint" style="border-top:1px solid var(--line); margin-top:14px; padding-top:12px">
+        <b style="color:var(--txt)">Cancellare i tuoi dati</b><br>
+        Rimuove dal server tutte le serie del tuo account. La copia su questo dispositivo
+        resta, e puoi sempre scaricarti un backup prima di procedere.
+        <div class="mact"><span class="sp"></span>
+          <button class="btn" id="bWipe" style="border-color:#5a2a2a">Elimina i miei dati dal server</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="ov" id="ovImp"
+  <div class="modal">
+    <h2 id="iTtl">Operazione in corso</h2>
+    <div class="bar" style="height:8px"><i id="iBar" style="width:0%"></i></div>
+    <div class="hint" id="iMsg">…</div>
+    <div class="res" id="iLog"></div>
+    <div class="mact">
+      <span class="sp"></span>
+      <button class="btn" id="iStop">Interrompi</button>
+      <button class="btn p" id="iClose" hidden>Chiudi</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+var KEY="serie-tracker-v2", OLD="serie-tracker-v1", CFG="serie-tracker-cfg";
+var db={shows:[]}, cfg={prov:"tmdb",tmdbKey:"",omdbKey:""};
+
+function loadCfg(){
+  try{
+    var s=JSON.parse(localStorage.getItem(CFG)||"null")||{};
+    if(s.prov) cfg.prov=s.prov;
+    // solo una chiave personale non vuota sostituisce quella condivisa
+    if(s.tmdbKey) cfg.tmdbKey=s.tmdbKey;
+    if(s.omdbKey) cfg.omdbKey=s.omdbKey;
+  }catch(e){}
+}
+function saveCfg(){ try{ localStorage.setItem(CFG,JSON.stringify(cfg)) }catch(e){} }
+
+/* ============ utilità ============ */
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7) }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c] }) }
+function toast(m){ var t=document.getElementById("toast"); t.className="toast on"; t.textContent=m;
+  clearTimeout(toast._h); toast._h=setTimeout(function(){t.classList.remove("on")},2000) }
+
+/* rimozione con possibilità di annullare */
+function removeShow(s){
+  var i=db.shows.indexOf(s); if(i<0) return;
+  db.shows.splice(i,1);
+  if(typeof delq!=="undefined"){ delq.push(s.id); saveSess() }   // da cancellare anche sul server
+  render();
+  var t=document.getElementById("toast");
+  t.className="toast on act";
+  t.textContent="«"+s.title+"» rimossa ";
+  var b=document.createElement("button");
+  b.textContent="Annulla";
+  b.onclick=function(){
+    db.shows.splice(Math.min(i,db.shows.length),0,s);
+    if(typeof delq!=="undefined"){                  // annulla anche la cancellazione sul server
+      delq=delq.filter(function(x){ return x!==s.id });
+      tocca(s,true); saveSess();
+    }
+    t.className="toast"; render(); toast("Ripristinata");
+  };
+  t.appendChild(b);
+  clearTimeout(toast._h);
+  toast._h=setTimeout(function(){ t.className="toast" },7000);
+}
+function find(id){ for(var i=0;i<db.shows.length;i++) if(db.shows[i].id===id) return db.shows[i] }
+
+/* Due date distinte, ed è la chiave della sincronizzazione:
+   - "updated" cambia solo quando sei TU a modificare qualcosa (spunte, voto,
+     nota, stato). È il metro per decidere chi vince fra due dispositivi.
+   - "sync" cambia a ogni modifica locale, comprese quelle di catalogo
+     (titolo, locandina, piattaforme). Serve solo a sapere cosa inviare.
+   Senza questa distinzione un aggiornamento del catalogo su un dispositivo
+   scavalcherebbe le modifiche fatte da te su un altro.                      */
+function tocca(s,utente){
+  s.sync=Date.now();
+  if(utente) s.updated=s.sync;
+}
+
+/* ============ modello ============
+   show.seasons = [{season:1, eps:[{n:1,name:"Pilot"},…]}, …]
+   show.seen    = {"1":[1,0,1,…], …}   (array parallelo agli episodi)
+=================================== */
+function seenArr(s,n){
+  if(!s.seen) s.seen={};
+  if(!Array.isArray(s.seen[n])) s.seen[n]=[];
+  return s.seen[n];
+}
+function hasStruct(s){ return !!(s.seasons && s.seasons.length) }
+
+/* Un episodio conta nel totale solo se è già andato in onda: i database
+   elencano anche quelli annunciati, e senza questo filtro una serie di cui
+   hai visto tutto risulterebbe incompleta. "9999" = annunciato senza data. */
+var OGGI=new Date().toISOString().slice(0,10);
+function uscito(ep){ return !ep.d || ep.d<=OGGI }
+
+function recalc(s){
+  if(hasStruct(s)){
+    var t=0,w=0,up=0,next=null;
+    s.seasons.forEach(function(se){
+      var a=seenArr(s,se.season); a.length=se.eps.length;
+      se.eps.forEach(function(ep,i){
+        a[i]=a[i]?1:0;
+        if(a[i]) w++;
+        if(uscito(ep)) t++;
+        else{
+          up++;
+          if(!next || ep.d<next.d) next={d:ep.d,lab:se.season+"×"+String(ep.n).padStart(2,"0")};
+        }
+      });
+    });
+    s.watched=w; s.total=Math.max(t,w); s.upcoming=up; s.next=next;
+  }else{
+    s.upcoming=0; s.next=null;
+    s.total=Math.max(0,parseInt(s.total,10)||0);
+    s.watched=Math.max(0,parseInt(s.watched,10)||0);
+    if(s.total && s.watched>s.total) s.watched=s.total;
+  }
+}
+var COLS=["watching","plan","uptodate","done"];
+var NOMI={watching:"In corso",plan:"Da vedere",uptodate:"In pari",done:"Finite"};
+var TINTA={watching:"var(--warn)",plan:"var(--plan)",uptodate:"var(--acc)",done:"var(--ok)"};
+var tabAttiva="watching";          // vale solo su schermo stretto
+/* serie mollata: la consideri chiusa anche se non l'hai finita */
+function isDropped(s){ return !!s.dropped }
+/* Viste tutte + serie ancora in produzione = "in pari".
+   Se lo stato di produzione non è noto (ended null) resta fra le finite. */
+function statusOf(s){
+  if(isDropped(s)) return "done";                 // chiusa per scelta tua
+  if(s.total>0 && s.watched>=s.total) return s.ended===false ? "uptodate" : "done";
+  return s.watched>0 ? "watching" : "plan";
+}
+function isFull(s){ return s.status==="done" || s.status==="uptodate" }
+function seenIn(s,se){
+  var a=seenArr(s,se.season), c=0;
+  for(var i=0;i<se.eps.length;i++) if(a[i]) c++;
+  return c;
+}
+function airedIn(se){                      // episodi della stagione già usciti
+  var c=0; se.eps.forEach(function(e){ if(uscito(e)) c++ }); return c;
+}
+function dataIt(d){
+  if(!d||d==="9999") return "data da definire";
+  var p=d.split("-"), m=["gen","feb","mar","apr","mag","giu","lug","ago","set","ott","nov","dic"];
+  return (+p[2])+" "+m[(+p[1])-1]+" "+p[0];
+}
+/* etichetta "S3E5" = ultimo episodio spuntato in ordine */
+function lastLabel(s){
+  if(!hasStruct(s)) return "";
+  var lab="";
+  s.seasons.forEach(function(se){
+    var a=seenArr(s,se.season);
+    for(var i=0;i<se.eps.length;i++) if(a[i]) lab="S"+se.season+"E"+se.eps[i].n;
+  });
+  return lab;
+}
+/* costruisce/riadatta la struttura da un elenco di conteggi, conservando gli spuntati in ordine */
+function applyStruct(s,counts){
+  var flat=[];
+  if(hasStruct(s)) s.seasons.forEach(function(se){
+    var a=seenArr(s,se.season);
+    for(var i=0;i<se.eps.length;i++) flat.push(a[i]?1:0);
+  });
+  else for(var k=0;k<(s.watched||0);k++) flat.push(1);
+
+  var seasons=[], seen={}, p=0;
+  counts.forEach(function(c,idx){
+    var n=idx+1, eps=[], a=[];
+    for(var i=0;i<c;i++){ eps.push({n:i+1,name:""}); a.push(flat[p++]?1:0) }
+    seasons.push({season:n,eps:eps}); seen[n]=a;
+  });
+  s.seasons=seasons; s.seen=seen;
+  recalc(s);
+}
+/* prossimo episodio non visto, in ordine */
+function nextUnseen(s){
+  for(var j=0;j<s.seasons.length;j++){
+    var se=s.seasons[j], a=seenArr(s,se.season);
+    for(var i=0;i<se.eps.length;i++) if(!a[i]) return {se:se.season,i:i};
+  }
+  return null;
+}
+function lastSeen(s){
+  var r=null;
+  for(var j=0;j<s.seasons.length;j++){
+    var se=s.seasons[j], a=seenArr(s,se.season);
+    for(var i=0;i<se.eps.length;i++) if(a[i]) r={se:se.season,i:i};
+  }
+  return r;
+}
+
+/* ============ persistenza ============ */
+function load(){
+  var raw=null;
+  try{ raw=localStorage.getItem(KEY) }catch(e){}
+  if(raw){ try{ db=JSON.parse(raw) }catch(e){ db={shows:[]} } }
+  else{
+    // migrazione dalla versione precedente (conteggio unico di episodi)
+    try{
+      var o=localStorage.getItem(OLD);
+      if(o){
+        var d=JSON.parse(o);
+        db={shows:(d.shows||[]).map(function(s){ return migrate(s) })};
+        toast("Dati della versione precedente importati");
+      }
+    }catch(e){}
+  }
+  if(!db||!Array.isArray(db.shows)) db={shows:[]};
+  db.shows=db.shows.map(function(s){ return migrate(s) });
+}
+function migrate(s){
+  var o={ id:s.id||uid(), title:String(s.title||"senza titolo"), year:s.year||"",
+    orig:s.orig||"", poster:s.poster||"", tvmaze:s.tvmaze||null,
+    // le piattaforme salvate nel vecchio formato (soli nomi) vengono scartate:
+    // il prossimo aggiornamento le riscarica complete di logo
+    piatt:(Array.isArray(s.piatt) && s.piatt.every(function(x){ return x && typeof x==="object" }))
+          ? s.piatt : null,
+    piattLink:s.piattLink||"", piattQuando:s.piattQuando||0,
+    src:(s.src&&s.src.id&&ALLP.indexOf(s.src.p)>-1)?{p:s.src.p,id:s.src.id}
+        :(s.tvmaze?{p:"tvmaze",id:s.tvmaze}:null),
+    meta:(s.meta&&s.meta.id)?{p:"tmdb",id:s.meta.id}:null,
+    rating:parseInt(s.rating,10)||0,
+    note:s.note||"", added:s.added||Date.now(), updated:s.updated||Date.now(),
+    sync:s.sync||s.updated||Date.now(),
+    dropped:!!s.dropped,
+    open:!!s.open, openDet:false, openSea:s.openSea||null, seasons:[], seen:{},
+    total:parseInt(s.total,10)||0, watched:parseInt(s.watched,10)||0 };
+
+  if(Array.isArray(s.seasons) && s.seasons.length && s.seasons[0] && s.seasons[0].eps){
+    o.seasons=s.seasons.map(function(se){
+      return { season:Number(se.season)||1,
+        eps:(se.eps||[]).map(function(e,i){
+          var o={n:Number(e.n)||i+1,name:e.name||""};
+          if(e.d) o.d=e.d;              // data di uscita, quando la conosciamo
+          return o;
+        }) };
+    });
+    o.seen=(s.seen&&typeof s.seen==="object")?s.seen:{};
+    recalc(o);
+  }else if(Array.isArray(s.seasons) && s.seasons.length && s.seasons[0] && s.seasons[0].count!=null){
+    // vecchio formato: [{season,count}] + numero di episodi visti
+    o.watched=parseInt(s.watched,10)||0;
+    applyStruct(o, s.seasons.map(function(se){ return Number(se.count)||0 }));
+  }else{
+    recalc(o);
+  }
+  o.ended=(s.ended===true||s.ended===false)?s.ended:null;
+  o.pstat=s.pstat||"";
+  o.status=(COLS.indexOf(s.status)>-1)?s.status:statusOf(o);
+  if(o.total>0 && o.watched>=o.total) o.status=statusOf(o);
+  return o;
+}
+function save(){
+  try{ localStorage.setItem(KEY,JSON.stringify(db)) }
+  catch(e){ toast("Impossibile salvare: memoria piena, fai un backup") }
+  if(typeof autoPush==="function") autoPush();   // invio al server, se c'è un account
+}
+function storageOk(){
+  try{ localStorage.setItem(KEY+":t","1"); localStorage.removeItem(KEY+":t"); return true }
+  catch(e){ return false }
+}
+
+/* ============ render ============ */
+function render(){
+  var y=window.scrollY;
+  var q=document.getElementById("q").value.trim().toLowerCase();
+  var vf=document.getElementById("fvoto").value;          // "" · "5".."1" · "0"
+  var sortBy=document.getElementById("sort").value;
+  var filtra=!!(q||vf);
+  function passa(s){
+    if(q && (s.title+" · "+(s.orig||"")).toLowerCase().indexOf(q)<0) return false;
+    if(vf==="0") return !(s.rating||0);                   // solo quelle da votare
+    if(vf) return (s.rating||0)>=Number(vf);
+    return true;
+  }
+  var g={}; COLS.forEach(function(t){ g[t]=[] });
+  db.shows.forEach(function(s){ (g[s.status]||g.plan).push(s) });
+
+  var cmp={
+    recent:function(a,b){ return (b.updated||0)-(a.updated||0) },
+    added:function(a,b){ return (b.added||0)-(a.added||0) },
+    title:function(a,b){ return a.title.localeCompare(b.title,"it") },
+    // voto decrescente, le non votate in fondo; a pari voto conta il titolo
+    rating:function(a,b){ return (b.rating||0)-(a.rating||0) || a.title.localeCompare(b.title,"it") },
+    // anno di prima messa in onda: le serie senza anno finiscono in fondo in entrambi i versi
+    annoGiu:function(a,b){ return (parseInt(b.year,10)||0)-(parseInt(a.year,10)||0)
+                                  || a.title.localeCompare(b.title,"it") },
+    annoSu:function(a,b){ return (parseInt(a.year,10)||9999)-(parseInt(b.year,10)||9999)
+                                 || a.title.localeCompare(b.title,"it") },
+    prog:function(a,b){ return (b.total?b.watched/b.total:0)-(a.total?a.watched/a.total:0) }
+  }[sortBy]||function(){return 0};
+
+  var conta={};
+  COLS.forEach(function(t){
+    var list=g[t].slice().sort(cmp);
+    var shown=filtra?list.filter(passa):list;
+    conta[t]=filtra?shown.length+"/"+list.length:String(list.length);
+    var sec=document.getElementById("c-"+t);
+    sec.classList.toggle("attiva",t===tabAttiva);
+    sec.querySelector(".cnt").textContent=conta[t];
+    sec.querySelector(".clist").innerHTML=shown.length
+      ? shown.map(card).join("")
+      : '<div class="empty">'+(filtra?"Nessun risultato":"Niente qui")+'</div>';
+  });
+  document.getElementById("tabBar").innerHTML=COLS.map(function(t){
+    return '<button data-tab="'+t+'" class="'+(t===tabAttiva?"on":"")+'">'+
+      '<span class="pal" style="background:'+TINTA[t]+'"></span>'+NOMI[t]+
+      ' <span style="opacity:.6">'+conta[t]+'</span></button>';
+  }).join("");
+
+  var eps=db.shows.reduce(function(a,s){return a+s.watched},0),
+      mollate=db.shows.filter(isDropped).length;
+  document.getElementById("stats").textContent = db.shows.length
+    ? db.shows.length+" serie · "+eps+" episodi · ~"+Math.round(eps*42/60)+" ore · "+
+      (g.done.length-mollate)+" concluse, "+g.uptodate.length+" in pari"+
+      (mollate?", "+mollate+" mollate":"")
+    : "";
+  save();
+  vetrina();
+  window.scrollTo(0,y);
+}
+
+/* chi arriva senza account e senza dati vede la presentazione, non quattro colonne vuote */
+function vetrina(){
+  var vuoto = !db.shows.length && !(typeof connesso==="function" && connesso());
+  document.getElementById("benvenuto").hidden=!vuoto;
+  document.querySelector("main").hidden=vuoto;
+  document.getElementById("tabBar").hidden=vuoto;
+  document.querySelector(".tools").style.display=vuoto?"none":"";
+}
+
+document.getElementById("tabBar").addEventListener("click",function(e){
+  var b=e.target.closest("[data-tab]"); if(!b) return;
+  tabAttiva=b.dataset.tab;
+  try{ localStorage.setItem(KEY+":tab",tabAttiva) }catch(err){}   // la ritrovi al rientro
+  render();
+  // cambiando colonna si riparte dall'alto, con l'intestazione di nuovo in vista
+  window.scrollTo(0,0);
+  document.body.classList.remove("giu");
+});
+document.getElementById("bMenu").onclick=function(){
+  document.querySelector(".tools").classList.toggle("aperta");
+};
+
+/* intestazione che si ritira scorrendo: la classe la mette qui, ma l'effetto
+   è definito solo nella disposizione da telefono, quindi su computer non accade nulla */
+(function(){
+  var soglia=24;      // torna in vista solo quando sei di nuovo in cima
+  window.addEventListener("scroll",function(){
+    var y=window.scrollY||document.documentElement.scrollTop;
+    document.body.classList.toggle("giu", y>soglia);
+  },{passive:true});
+})();
+
+/* scheda della serie sul sito di origine */
+function webUrl(s){
+  if(s.meta && s.meta.p==="tmdb")   // scheda in italiano, quando c'è
+    return { href:"https://www.themoviedb.org/tv/"+s.meta.id+"?language=it-IT", tip:"Apri la scheda su TMDb" };
+  if(s.src && s.src.p==="omdb")
+    return { href:"https://www.imdb.com/title/"+s.src.id+"/", tip:"Apri la scheda su IMDb" };
+  if(s.src && s.src.p==="tmdb")
+    return { href:"https://www.themoviedb.org/tv/"+s.src.id+"?language=it-IT", tip:"Apri la scheda su TMDb" };
+  if(s.src && s.src.p==="tvmaze")
+    return { href:"https://www.tvmaze.com/shows/"+s.src.id, tip:"Apri la scheda su TVmaze" };
+  // serie senza corrispondenza nei database: IMDb ha la copertura più ampia
+  return { href:"https://www.imdb.com/find/?s=tt&ttype=tv&q="+encodeURIComponent(s.title),
+           tip:"Cerca «"+s.title+"» su IMDb" };
+}
+
+/* voto da 1 a 5 stelle, più un 6° livello "5+" per le serie epiche.
+   Le stelle sono scritte da 5 a 1 e la riga è invertita in CSS, così il
+   passaggio del mouse su una illumina anche quelle alla sua sinistra;
+   il "+" sta per primo nel codice perché va a destra di tutte.          */
+/* Piattaforme in abbonamento: loghi quadrati accanto al titolo, così non
+   allungano la card. Solo dove serve decidere cosa guardare.              */
+function piattHtml(s){
+  if(s.status!=="watching" && s.status!=="plan") return "";
+  if(!s.piatt || !s.piatt.length) return "";
+  var quando=s.piattQuando?" · rilevato il "+dataIt(new Date(s.piattQuando).toISOString().slice(0,10)):"";
+  var loghi=s.piatt.map(function(p){
+    if(!p || typeof p!=="object" || !p.l) return "";   // senza logo non si disegna niente
+    return '<img class="piat" src="https://image.tmdb.org/t/p/w45'+esc(p.l)+'" alt="'+esc(p.n||"")+
+           '" title="'+esc((p.n||"")+" · con abbonamento"+quando)+'" loading="lazy">';
+  }).join("");
+  if(!loghi) return "";
+  return s.piattLink
+    ? '<a class="piatt" href="'+esc(s.piattLink)+'" target="_blank" rel="noopener noreferrer">'+loghi+'</a>'
+    : '<span class="piatt">'+loghi+'</span>';
+}
+
+function rateHtml(s){
+  var r=s.rating||0, h='<span class="rate'+(r>=6?" epic":"")+'">';
+  h+='<b class="plus '+(r>=6?"on":"off")+'" data-a="rate" data-i="'+s.id+'" data-v="6" title="'+
+     (r===6?"Togli il voto":"Epica · oltre le cinque stelle")+'">+</b>';
+  for(var v=5;v>=1;v--)
+    h+='<b class="'+(r>=v?"on":"off")+'" data-a="rate" data-i="'+s.id+'" data-v="'+v+'" title="'+
+       (r===v?"Togli il voto":("Dai "+v+(v===1?" stella":" stelle")))+'">★</b>';
+  return h+'</span>';
+}
+
+function cbCls(done,part){ return "cb"+(done?" on":(part?" part":"")) }
+function cbTxt(done,part){ return done?"✓":(part?"–":"") }
+
+function card(s){
+  var pct=s.total?Math.round(s.watched/s.total*100):0;
+  var pos=s.poster
+    ? '<img class="pos" src="'+esc(s.poster)+'" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">'
+    : '<div class="pos ph">'+esc((s.title.charAt(0)||"?").toUpperCase())+'</div>';
+  var lab=lastLabel(s), full=isFull(s);
+  // la colonna "In pari" dice già che stai aspettando: qui serve solo la data, se c'è
+  var attesa = s.next ? (s.next.d==="9999" ? " · prossimo senza data"
+                                           : " · prossimo il "+dataIt(s.next.d)) : "";
+  // per una serie mollata il progresso reale resta visibile: è l'informazione utile
+  var prog = !full || isDropped(s);
+  var meta=s.total
+    ? (lab&&prog?lab+" · ":"")+s.watched+"/"+s.total+" ep"+(prog?" · "+pct+"%":"")+
+      (full&&!isDropped(s)?attesa:"")
+    : (s.watched?s.watched+" ep visti":"episodi non indicati");
+
+  var acts="";
+  if(hasStruct(s)){
+    if(!full) acts+='<button class="btn sm" data-a="plus" data-i="'+s.id+'" title="Segna il prossimo episodio">+1</button>';
+    if(!full) acts+='<button class="btn sm" data-a="all" data-i="'+s.id+'">✓ Tutti</button>';
+    if(s.status==="uptodate" && s.src)
+      acts+='<button class="btn sm" data-a="sync" data-i="'+s.id+'" title="Cerca episodi nuovi">⟳</button>';
+    acts+='<button class="btn sm gh" data-a="open" data-i="'+s.id+'">'+(s.open?"▴ Stagioni":"▾ Stagioni")+'</button>';
+  }else{
+    if(s.status==="plan") acts+='<button class="btn sm" data-a="plus" data-i="'+s.id+'">▶ Inizia</button>';
+    else if(s.status==="watching") acts+='<button class="btn sm" data-a="plus" data-i="'+s.id+'" title="Segna il prossimo episodio">+1</button>'+
+                                        '<button class="btn sm" data-a="minus" data-i="'+s.id+'">−1</button>';
+    if(!full) acts+='<button class="btn sm" data-a="all" data-i="'+s.id+'">✓ Finita</button>';
+  }
+  acts+='<button class="btn sm gh" data-a="edit" data-i="'+s.id+'">'+(s.openDet?"▴ Dettagli":"▾ Dettagli")+'</button>';
+  var lk=webUrl(s);
+  acts+='<a class="info" href="'+esc(lk.href)+'" target="_blank" rel="noopener noreferrer"'+
+        ' title="'+esc(lk.tip)+'">↗ Info</a>';
+
+  var col=isDropped(s) ? "var(--drop)"      // mollata: barra arancione sul progresso reale
+        : ({done:"var(--ok)",watching:"var(--warn)",plan:"var(--plan)",uptodate:"var(--acc)"}[s.status]||"var(--acc)");
+  var cls=({done:"st-done",watching:"st-part",plan:"st-plan",uptodate:"st-up"}[s.status]||"")+
+          ((s.rating||0)>=6?" epic":"");
+
+  return '<div class="card '+cls+'">'+
+    '<button class="del" data-a="del" data-i="'+s.id+'" title="Rimuovi questa serie">✕</button>'+
+    '<div class="top">'+pos+'<div class="body">'+
+    '<div class="ttl">'+esc(s.title)+(s.year?' <span class="yr">'+esc(s.year)+'</span>':'')+
+      piattHtml(s)+'</div>'+
+    '<div class="meta">'+esc(meta)+' · '+rateHtml(s)+'</div>'+
+    (s.total?'<div class="bar"><i style="width:'+pct+'%;background:'+col+'"></i></div>':'')+
+    (s.note?'<div class="note">'+esc(s.note)+'</div>':'')+
+    '<div class="acts">'+acts+'</div>'+
+    '</div></div>'+ (s.open?seasonsHtml(s):"") + (s.openDet?detailHtml(s):"") +'</div>';
+}
+
+var PSTAT={Ended:"conclusa",Running:"in produzione","To Be Determined":"sospesa",
+  "In Development":"in sviluppo","Returning Series":"in produzione",
+  "Canceled":"cancellata","In Production":"in produzione"};
+
+function detailHtml(s){
+  function sel(f,opts,cur){
+    return '<select class="fld" data-f="'+f+'" data-i="'+s.id+'">'+opts.map(function(o){
+      return '<option value="'+o[0]+'"'+(String(o[0])===String(cur)?' selected':'')+'>'+o[1]+'</option>';
+    }).join("")+'</select>';
+  }
+  var fonte = s.pstat ? "La fonte la dà "+(PSTAT[s.pstat]||s.pstat)+"."
+                      : "Stato di produzione non noto.";
+  return '<div class="det">'+
+    '<label>Titolo</label>'+
+    '<input class="fld" data-f="title" data-i="'+s.id+'" value="'+esc(s.title)+'">'+
+    '<label>Titolo originale <span style="color:#5d6b7c">· vale anche per il filtro</span></label>'+
+    '<input class="fld" data-f="orig" data-i="'+s.id+'" value="'+esc(s.orig||"")+
+      '" placeholder="'+(s.orig?"":"es. Sorjonen")+'">'+
+    '<label>Episodi per stagione</label>'+
+    '<input class="fld" data-f="struct" data-i="'+s.id+'" placeholder="7, 13, 13, 13, 16" value="'+
+      esc(hasStruct(s)?s.seasons.map(function(se){ return se.eps.length }).join(", "):"")+'">'+
+    '<label>Stato</label>'+sel("status",[
+      ["watching","In corso"],["plan","Da vedere · azzera"],
+      ["done","Vista tutta · conclusa"],["uptodate","Vista tutta · in pari"],
+      ["dropped","Mollata · la considero chiusa"]],
+      isDropped(s)?"dropped":s.status)+
+    '<label>Nota</label>'+
+    '<textarea class="fld" rows="2" data-f="note" data-i="'+s.id+'" '+
+      'placeholder="es. mollata a metà stagione 3">'+esc(s.note||"")+'</textarea>'+
+    (s.src?'<div class="acts"><button class="btn sm" data-a="sync" data-i="'+s.id+
+      '">⟳ Aggiorna dalla fonte</button></div>':'')+
+    '<div class="fin">'+esc(fonte)+' Le modifiche si salvano da sole quando esci dal campo.</div>'+
+  '</div>';
+}
+
+function seasonsHtml(s){
+  if(!hasStruct(s)) return '<div class="seas"><div class="nostruct">Nessuna struttura di stagioni.'+
+    ' Apri <b>Dettagli</b> per indicare gli episodi di ogni stagione.</div></div>';
+  var h='<div class="seas">';
+  s.seasons.forEach(function(se){
+    var tot=airedIn(se), fut=se.eps.length-tot, w=seenIn(s,se),
+        full=tot>0&&w>=tot, part=w>0&&!full;
+    var open=s.openSea===se.season;
+    h+='<div class="srow'+(open?" open":"")+'" data-a="osea" data-i="'+s.id+'" data-s="'+se.season+'">'+
+       '<span class="'+cbCls(full,part)+'" data-a="tsea" data-i="'+s.id+'" data-s="'+se.season+'">'+cbTxt(full,part)+'</span>'+
+       '<span class="sname">Stagione '+se.season+'</span>'+
+       '<span class="sc">'+w+'/'+tot+(fut?' <span style="color:var(--acc)">+'+fut+'</span>':'')+
+       '</span><span class="scar">▸</span></div>';
+    if(open){
+      var a=seenArr(s,se.season);
+      h+='<div class="eps">';
+      se.eps.forEach(function(e,i){
+        var on=!!a[i], out=uscito(e);
+        h+='<div class="erow'+(on?" seen":"")+(out?"":" fut")+'" data-a="tep" data-i="'+s.id+
+             '" data-s="'+se.season+'" data-e="'+i+'">'+
+           '<span class="'+cbCls(on,false)+'">'+cbTxt(on,false)+'</span>'+
+           '<span class="en">'+se.season+'×'+String(e.n).padStart(2,"0")+'</span>'+
+           '<span class="et">'+esc(e.name||"")+'</span>'+
+           (!out?'<span class="when">'+esc(dataIt(e.d))+'</span>'
+                :(on?'':'<button class="upto" data-a="upto" data-i="'+s.id+'" data-s="'+se.season+'" data-e="'+i+
+                   '" title="Segna questo e tutti i precedenti">⇤ fino a qui</button>'))+
+           '</div>';
+      });
+      h+='</div>';
+    }
+  });
+  return h+'</div>';
+}
+
+/* ============ azioni ============ */
+document.addEventListener("click",function(ev){
+  var b=ev.target.closest?ev.target.closest("[data-a]"):null;
+  if(!b) return;
+  var a=b.dataset.a, s=find(b.dataset.i);
+  if(a==="tsea"||a==="tep"||a==="upto") ev.stopPropagation();
+  if(!s) return;
+
+  if(a==="open"){ s.open=!s.open; render(); return }
+  if(a==="edit"){ s.openDet=!s.openDet; render(); return }
+  if(a==="del"){ removeShow(s); return }
+  if(a==="rate"){                       // riclicchi la stessa stella e togli il voto
+    var v=Number(b.dataset.v);
+    s.rating = (s.rating===v) ? 0 : v;
+    tocca(s,true); render(); return;
+  }
+  if(a==="sync"){
+    b.textContent="…";
+    syncShow(s).then(function(r){ render();
+        toast(r.nuovi?r.nuovi+" episodi nuovi per «"+s.title+"»":"Nessun episodio nuovo") })
+      .catch(function(){ render(); toast("Aggiornamento non riuscito") });
+    return;
+  }
+  if(a==="osea"){ s.openSea = (s.openSea===Number(b.dataset.s))?null:Number(b.dataset.s); render(); return }
+
+  if(a==="tsea"){
+    var n=Number(b.dataset.s), se=s.seasons.filter(function(x){return x.season===n})[0];
+    if(se){ var arr=seenArr(s,n), full=seenIn(s,se)>=airedIn(se);
+      se.eps.forEach(function(ep,i){ arr[i]=full?0:(uscito(ep)?1:arr[i]) }); }
+  }
+  else if(a==="tep"){
+    var ar=seenArr(s,Number(b.dataset.s)), i2=Number(b.dataset.e);
+    ar[i2]=ar[i2]?0:1;
+  }
+  else if(a==="upto"){
+    var ns=Number(b.dataset.s), ne=Number(b.dataset.e), stop=false;
+    s.seasons.forEach(function(se){
+      if(stop) return;
+      var ar2=seenArr(s,se.season);
+      for(var i=0;i<se.eps.length;i++){
+        if(se.season===ns && i>ne){ stop=true; return }
+        ar2[i]=1;
+      }
+      if(se.season===ns) stop=true;
+    });
+  }
+  else if(a==="plus"){
+    if(hasStruct(s)){ var nx=nextUnseen(s); if(nx && uscito(s.seasons.filter(function(x){
+        return x.season===nx.se })[0].eps[nx.i])) seenArr(s,nx.se)[nx.i]=1 }
+    else if(!s.total||s.watched<s.total) s.watched++;
+  }
+  else if(a==="minus"){
+    if(hasStruct(s)){ var ls=lastSeen(s); if(ls) seenArr(s,ls.se)[ls.i]=0 }
+    else if(s.watched>0) s.watched--;
+  }
+  else if(a==="all"){
+    if(hasStruct(s)) s.seasons.forEach(function(se){
+      var ar3=seenArr(s,se.season);
+      se.eps.forEach(function(ep,i){ if(uscito(ep)) ar3[i]=1 });   // mai quelli non ancora usciti
+    });
+    else { s.watched=s.total||s.watched||1; s.total=s.watched }   // senza struttura: il totale è ciò che hai visto
+  }
+  else return;
+
+  recalc(s); s.status=statusOf(s); tocca(s,true); render();
+});
+
+/* colonne richiudibili */
+document.querySelectorAll(".chd").forEach(function(h){
+  var t=h.dataset.t;
+  try{ if(localStorage.getItem(KEY+":cl:"+t)==="1") h.parentNode.classList.add("closed") }catch(e){}
+  h.addEventListener("click",function(){
+    var c=h.parentNode.classList.toggle("closed");
+    try{ localStorage.setItem(KEY+":cl:"+t,c?"1":"0") }catch(e){}
+  });
+});
+
+/* ============ aggiungi ============ */
+var ovAdd=document.getElementById("ovAdd");
+function openAdd(){
+  ovAdd.classList.add("on");
+  document.getElementById("sq").value="";
+  document.getElementById("res").innerHTML="";
+  document.getElementById("mManual").hidden=true;
+  document.getElementById("prov").value=cfg.prov||"tmdb";
+  document.getElementById("tmdbKey").value=cfg.tmdbKey||"";
+  document.getElementById("omdbKey").value=cfg.omdbKey||"";
+  document.getElementById("keyBox").hidden=true;   // si apre solo col tasto ⚙ Chiavi
+  syncProvUI();
+  setTimeout(function(){ document.getElementById("sq").focus() },60);
+}
+document.getElementById("bAdd").onclick=openAdd;
+document.getElementById("bCancel").onclick=function(){ ovAdd.classList.remove("on") };
+ovAdd.addEventListener("click",function(e){ if(e.target===ovAdd) ovAdd.classList.remove("on") });
+document.getElementById("bManualToggle").onclick=function(){
+  var m=document.getElementById("mManual");
+  m.hidden=!m.hidden;
+  if(!m.hidden){
+    document.getElementById("mT").value=document.getElementById("sq").value.trim();
+    document.getElementById("mT").focus();
+  }
+};
+
+/* ---- database di origine ---------------------------------------------
+   TVmaze : pubblico, nessuna registrazione, titoli in lingua originale
+   TMDb   : titoli di serie ed episodi in italiano, richiede una chiave gratuita
+----------------------------------------------------------------------- */
+var provSel=document.getElementById("prov"), keyBox=document.getElementById("keyBox"),
+    hintProv=document.getElementById("hintProv"), lastHits=[];
+
+function getJSON(u){ return fetch(u).then(function(r){ if(!r.ok) throw new Error(r.status); return r.json() }) }
+function provider(){ return provSel.value }
+/* Chiavi condivise: valgono per tutti gli utenti del sito, così la ricerca in
+   italiano funziona senza che nessuno debba registrarsi da nessuna parte.
+   Chi ne inserisce una propria dal pannello ⚙ sostituisce quella condivisa. */
+var TMDB_COMUNE="387a0e99f56a0383872ed6ac40030009";
+var OMDB_COMUNE="79592d63";
+function tmdbKey(){ return cfg.tmdbKey || TMDB_COMUNE }
+function omdbKey(){ return cfg.omdbKey || OMDB_COMUNE }
+function tmdbImg(p){ return p?"https://image.tmdb.org/t/p/w154"+p:"" }
+var ALLP=["tmdb","tvmaze","omdb"];
+function hasKey(p){ return p==="tmdb"?!!tmdbKey() : p==="omdb"?!!omdbKey() : true }
+
+var PNAME={tmdb:"TMDb",tvmaze:"TVmaze",omdb:"IMDb"};
+/* ordine di interrogazione: la principale, poi le altre disponibili, in automatico */
+function order(){
+  var p=provider();
+  return [p].concat(ALLP.filter(function(x){ return x!==p })).filter(hasKey);
+}
+function syncProvUI(){
+  var ch=order();
+  hintProv.innerHTML = "Cerca su <b>"+ch.map(function(p){ return PNAME[p] }).join(" → ")+
+    "</b>, passando alla successiva da sola se la prima non trova nulla.";
+}
+provSel.onchange=function(){ cfg.prov=provider(); saveCfg(); syncProvUI(); liveSearch(true) };
+document.getElementById("bKeys").onclick=function(){
+  var k=document.getElementById("keyBox"); k.hidden=!k.hidden;
+};
+document.getElementById("bKey").onclick=function(){
+  cfg.tmdbKey=document.getElementById("tmdbKey").value.trim();
+  cfg.omdbKey=document.getElementById("omdbKey").value.trim();
+  saveCfg(); syncProvUI();
+  document.getElementById("keyBox").hidden=true;
+  toast("Chiavi salvate"); liveSearch(true);
+};
+
+/* --- ricerca --- */
+function searchTvmaze(q){
+  return getJSON("https://api.tvmaze.com/search/shows?q="+encodeURIComponent(q)).then(function(l){
+    return (l||[]).slice(0,14).map(function(x){
+      var sh=x.show, ch=(sh.network&&sh.network.name)||(sh.webChannel&&sh.webChannel.name)||"";
+      return { p:"tvmaze", id:sh.id, title:sh.name, year:(sh.premiered||"").slice(0,4),
+               poster:(sh.image&&sh.image.medium)||"",
+               sub:[(sh.premiered||"").slice(0,4)||"—",ch,sh.status].filter(Boolean).join(" · ") };
+    });
+  });
+}
+function searchTmdb(q){
+  return getJSON("https://api.themoviedb.org/3/search/tv?language=it-IT&include_adult=false&api_key="+
+                 encodeURIComponent(tmdbKey())+"&query="+encodeURIComponent(q)).then(function(d){
+    return (d.results||[]).slice(0,14).map(function(r){
+      var orig=(r.original_name&&r.original_name!==r.name)?r.original_name:"";
+      return { p:"tmdb", id:r.id, title:r.name, orig:orig, year:(r.first_air_date||"").slice(0,4),
+               poster:tmdbImg(r.poster_path),
+               sub:[(r.first_air_date||"").slice(0,4)||"—",(r.origin_country||[])[0]].filter(Boolean).join(" · ") };
+    });
+  });
+}
+
+var tmr=null;
+function liveSearch(now){
+  clearTimeout(tmr);
+  tmr=setTimeout(doSearch, now?0:380);
+}
+/* OMDb ridistribuisce i dati IMDb: titoli e numerazione IMDb, solo in inglese */
+function omdbUrl(args){ return "https://www.omdbapi.com/?apikey="+encodeURIComponent(omdbKey())+args }
+function searchOmdb(q){
+  return getJSON(omdbUrl("&type=series&s="+encodeURIComponent(q))).then(function(d){
+    if(d.Response==="False"){
+      if(/invalid api key/i.test(d.Error||"")) throw new Error("401");
+      return [];
+    }
+    return (d.Search||[]).slice(0,14).map(function(r){
+      return { p:"omdb", id:r.imdbID, title:r.Title, year:(r.Year||"").slice(0,4),
+               poster:(r.Poster&&r.Poster!=="N/A")?r.Poster:"",
+               sub:[r.Year||"",r.imdbID].filter(Boolean).join(" · ") };
+    });
+  });
+}
+function fetchOmdb(id){
+  return getJSON(omdbUrl("&i="+encodeURIComponent(id))).then(function(d){
+    if(d.Response==="False") throw new Error(d.Error||"omdb");
+    var n=Math.min(parseInt(d.totalSeasons,10)||0, 40), jobs=[];
+    for(var i=1;i<=n;i++) jobs.push(
+      getJSON(omdbUrl("&i="+encodeURIComponent(id)+"&Season="+i)).catch(function(){ return null }));
+    return Promise.all(jobs).then(function(arr){
+      var bys={};
+      arr.forEach(function(s,idx){
+        if(!s||!s.Episodes) return;
+        var sn=parseInt(s.Season,10)||idx+1;
+        s.Episodes.forEach(function(e){
+          var num=parseInt(e.Episode,10); if(!num) return;
+          (bys[sn]=bys[sn]||[]).push({n:num,name:e.Title||"",
+            d:(e.Released&&e.Released!=="N/A")?e.Released:"9999"});
+        });
+      });
+      // "2008–2013" conclusa · "2021–" ancora in corso
+      var running=/^\d{4}\s*[–-]\s*$/.test(d.Year||"");
+      return { title:d.Title, year:(d.Year||"").slice(0,4),
+               poster:(d.Poster&&d.Poster!=="N/A")?d.Poster:"",
+               seasons:pack(bys), ended:!running, pstat:running?"Running":"Ended",
+               src:{p:"omdb",id:d.imdbID} };
+    });
+  });
+}
+
+function searchWith(p,q){
+  return p==="tmdb"?searchTmdb(q) : p==="omdb"?searchOmdb(q) : searchTvmaze(q);
+}
+
+function doSearch(){
+  var q=document.getElementById("sq").value.trim(), res=document.getElementById("res");
+  if(q.length<2){ res.innerHTML=""; return }
+  var chain=order(), mine=q, skipped=[];
+  res.innerHTML='<div class="empty">Cerco su '+PNAME[chain[0]]+'…</div>';
+
+  function stale(){ return document.getElementById("sq").value.trim()!==mine }
+
+  function attempt(i){
+    if(i>=chain.length){
+      if(stale()) return;
+      var extra = !tmdbKey()
+        ? "<br>Senza TMDb si cerca solo per titolo originale: prova con quello, oppure premi ⚙ e aggiungi la chiave."
+        : "";
+      res.innerHTML='<div class="empty">Nessun risultato'+
+        (skipped.length?" su "+skipped.join(" né su "):"")+'.'+extra+'</div>';
+      return;
+    }
+    searchWith(chain[i],q).then(function(hits){
+      if(stale()) return;
+      if(!hits.length){ skipped.push(PNAME[chain[i]]); return attempt(i+1) }
+      show(hits,skipped);
+    }).catch(function(err){
+      if(stale()) return;
+      skipped.push(PNAME[chain[i]]+(String(err.message)==="401"?" (chiave non valida)":" (non raggiungibile)"));
+      attempt(i+1);
+    });
+  }
+
+  function show(hits,skip){
+    lastHits=hits;
+    var head = skip.length
+      ? '<div class="empty" style="text-align:left">Niente su '+esc(skip.join(", "))+
+        ', questi arrivano da '+PNAME[hits[0].p]+'.</div>'
+      : "";
+    res.innerHTML = head + hits.map(function(h,i){
+      var lk=webUrl({src:{p:h.p,id:h.id},title:h.title});
+      return '<div class="ri" data-hit="'+i+'" role="button" tabindex="0" title="Aggiungi alla lista">'+
+        '<img src="'+esc(h.poster)+'" alt="" onerror="this.style.visibility=\'hidden\'">'+
+        '<span style="flex:1; min-width:0"><span class="n">'+esc(h.title)+
+        '<span class="src '+h.p+'">'+PNAME[h.p]+'</span></span><br>'+
+        (h.orig?'<span class="s" style="color:var(--txt)">titolo originale: '+esc(h.orig)+'</span><br>':'')+
+        '<span class="s">'+esc(h.sub)+'</span></span>'+
+        '<a class="info" href="'+esc(lk.href)+'" target="_blank" rel="noopener noreferrer"'+
+          ' title="'+esc(lk.tip)+' senza aggiungerla">↗ Info</a>'+
+        '</div>';
+    }).join("");
+  }
+
+  attempt(0);
+}
+document.getElementById("sq").addEventListener("input",function(){ liveSearch() });
+document.getElementById("sq").addEventListener("keydown",function(e){ if(e.key==="Enter") liveSearch(true) });
+
+/* --- scaricamento completo di stagioni ed episodi --- */
+function fetchTvmaze(id){
+  return Promise.all([
+    getJSON("https://api.tvmaze.com/shows/"+id),
+    getJSON("https://api.tvmaze.com/shows/"+id+"/episodes")
+  ]).then(function(a){
+    var sh=a[0], bys={};
+    (a[1]||[]).forEach(function(e){
+      if(e.season==null||e.number==null) return;                 // esclude gli speciali
+      (bys[e.season]=bys[e.season]||[]).push({n:e.number,name:e.name||"",d:e.airdate||"9999"});
+    });
+    return { title:sh.name, year:(sh.premiered||"").slice(0,4),
+             poster:(sh.image&&sh.image.medium)||"", seasons:pack(bys),
+             // solo "Running" vale come ancora in produzione:
+             // "To Be Determined" sono le sospese, che non tornano quasi mai
+             ended:sh.status!=="Running", pstat:sh.status||"",
+             imdb:(sh.externals&&sh.externals.imdb)||"",
+             src:{p:"tvmaze",id:sh.id}, tvmaze:sh.id };
+  });
+}
+function fetchTmdb(id){
+  var k=encodeURIComponent(tmdbKey());
+  return getJSON("https://api.themoviedb.org/3/tv/"+id+"?language=it-IT&api_key="+k).then(function(sh){
+    var nums=(sh.seasons||[]).map(function(s){ return s.season_number })
+             .filter(function(n){ return n>0 }).sort(function(a,b){ return a-b });
+    return Promise.all(nums.map(function(n){
+      return getJSON("https://api.themoviedb.org/3/tv/"+id+"/season/"+n+"?language=it-IT&api_key="+k)
+        .catch(function(){ return {season_number:n,episodes:[]} });
+    })).then(function(seas){
+      var bys={};
+      seas.forEach(function(s){
+        (s.episodes||[]).forEach(function(e){
+          if(e.episode_number==null) return;
+          (bys[s.season_number]=bys[s.season_number]||[]).push({n:e.episode_number,name:e.name||"",
+            d:e.air_date||"9999"});
+        });
+      });
+      var fin=!(sh.status==="Returning Series"||sh.status==="In Production");
+      return { title:sh.name,
+               orig:(sh.original_name&&sh.original_name!==sh.name)?sh.original_name:"",
+               year:(sh.first_air_date||"").slice(0,4),
+               poster:tmdbImg(sh.poster_path), seasons:pack(bys),
+               ended:fin, pstat:sh.status||"",
+               src:{p:"tmdb",id:sh.id} };
+    });
+  });
+}
+function pack(bys){
+  return Object.keys(bys).map(Number).sort(function(a,b){ return a-b }).map(function(n){
+    return { season:n, eps:bys[n].sort(function(x,y){ return x.n-y.n }) };
+  });
+}
+function fetchShow(src){
+  if(!src) return Promise.reject(new Error("no src"));
+  if(!hasKey(src.p)) return Promise.reject(new Error("key"));
+  return src.p==="tmdb" ? fetchTmdb(src.id)
+       : src.p==="omdb" ? fetchOmdb(src.id)
+       : fetchTvmaze(src.id);
+}
+
+document.getElementById("res").addEventListener("click",function(e){
+  if(e.target.closest("a")) return;          // il link ↗ Info apre e basta, non aggiunge
+  var b=e.target.closest("[data-hit]"); if(!b) return;
+  var h=lastHits[Number(b.dataset.hit)]; if(!h) return;
+  b.innerHTML='<span class="s">Scarico stagioni ed episodi…</span>';
+  fetchShow({p:h.p,id:h.id})
+    .then(function(o){ if(!o.poster) o.poster=h.poster; addShow(o) })
+    .catch(function(){ toast("Impossibile scaricare gli episodi"); doSearch() });
+});
+
+document.getElementById("bManualSave").onclick=function(){
+  var t=document.getElementById("mT").value.trim();
+  if(!t){ toast("Serve un titolo"); return }
+  var counts=parseCounts(document.getElementById("mS").value);
+  addShow({ title:t, year:document.getElementById("mY").value.trim(), counts:counts });
+  document.getElementById("mT").value=""; document.getElementById("mY").value="";
+  document.getElementById("mS").value="";
+};
+function parseCounts(str){
+  return String(str||"").split(/[,;\s]+/).map(function(x){ return parseInt(x,10) })
+         .filter(function(n){ return n>0 });
+}
+
+function addShow(o){
+  // il doppione vero è la stessa scheda della stessa fonte, non il titolo uguale:
+  // esistono serie diverse con lo stesso nome (Top Boy 2011 e Top Boy 2019)
+  var dup=db.shows.filter(function(s){
+    if(!o.src) return false;
+    // stessa scheda della stessa fonte…
+    if(s.src && s.src.p===o.src.p && String(s.src.id)===String(o.src.id)) return true;
+    // …oppure stessa serie già presente ma presa da un altro database
+    if(o.src.p==="tmdb" && s.meta && String(s.meta.id)===String(o.src.id)) return true;
+    if(s.src && s.src.p==="tmdb" && o.meta && String(o.meta.id)===String(s.src.id)) return true;
+    return false;
+  })[0];
+  if(dup){ toast("«"+dup.title+"» è già in lista"); ovAdd.classList.remove("on"); return }
+
+  var titolo=String(o.title||"senza titolo"), n=1;
+  function preso(t){ return db.shows.some(function(s){ return s.title.toLowerCase()===t.toLowerCase() }) }
+  if(preso(titolo)) titolo = o.year ? titolo+" ("+o.year+")" : titolo+" (2)";
+  while(preso(titolo)){ n++; titolo=String(o.title)+" ("+n+")" }
+
+  var s={ id:uid(), title:titolo, orig:o.orig||"", year:o.year||"", poster:o.poster||"",
+    src:o.src||null, tvmaze:o.tvmaze||null,
+    ended:(o.ended===true||o.ended===false)?o.ended:null, pstat:o.pstat||"",
+    seasons:o.seasons||[], seen:{}, total:0, watched:0, status:"plan", rating:0, note:"",
+    open:false, openSea:null, added:Date.now(), updated:Date.now(), sync:Date.now() };
+  if(o.counts && o.counts.length) applyStruct(s,o.counts); else recalc(s);
+  db.shows.push(s);
+  ovAdd.classList.remove("on");
+  render();
+  toast("«"+s.title+"» aggiunta a Da vedere"+(s.total?" · "+s.seasons.length+" stagioni, "+s.total+" episodi":""));
+}
+
+/* ============ pannello dettagli: i campi si applicano da soli ============ */
+function applyStatus(s,want){
+  if(want==="dropped"){          // nessuna spunta toccata: cambia solo come la consideri
+    s.dropped=true; s.status="done"; return;
+  }
+  s.dropped=false;
+  if(want==="done" || want==="uptodate"){
+    if(hasStruct(s)) s.seasons.forEach(function(se){
+      var a=seenArr(s,se.season);
+      se.eps.forEach(function(ep,i){ if(uscito(ep)) a[i]=1 });
+    }); else { s.watched=s.total||s.watched||1; s.total=s.watched }
+    s.ended = (want==="done");        // scelta esplicita sullo stato di produzione
+  }else if(want==="plan"){
+    if(hasStruct(s)) s.seasons.forEach(function(se){ s.seen[se.season]=[] }); else s.watched=0;
+  }
+  recalc(s);
+  s.status = (want==="watching" && s.watched===0) ? "watching" : statusOf(s);
+  // rimettere in corso una serie completata: libera l'ultimo episodio
+  if(want==="watching" && isFull(s)){
+    if(hasStruct(s)){ var l=lastSeen(s); if(l) seenArr(s,l.se)[l.i]=0 }
+    else s.watched=Math.max(0,s.total-1);
+    recalc(s); s.status=statusOf(s);
+  }
+}
+
+document.addEventListener("change",function(ev){
+  var el=ev.target.closest?ev.target.closest("[data-f]"):null; if(!el) return;
+  var s=find(el.dataset.i); if(!s) return;
+  var f=el.dataset.f, v=el.value;
+
+  if(f==="title"){ var t=v.trim(); if(t) s.title=t }
+  else if(f==="orig") s.orig=v.trim();
+  else if(f==="note") s.note=v.trim();
+  else if(f==="struct"){
+    var c=parseCounts(v),
+        cur=hasStruct(s)?s.seasons.map(function(se){ return se.eps.length }).join(","):"";
+    if(c.length && c.join(",")!==cur) applyStruct(s,c);
+  }
+  else if(f==="status"){ applyStatus(s,v) }
+
+  if(f!=="status"){ recalc(s); s.status=statusOf(s) }
+  tocca(s,true);
+  save();
+  // ritardo minimo: "change" scatta all'uscita dal campo, e ridisegnare subito
+  // toglierebbe da sotto il mouse il pulsante che stai per premere
+  clearTimeout(window.__rt); window.__rt=setTimeout(render,150);
+});
+/* ricarica struttura e stato di produzione conservando le spunte,
+   abbinate per stagione×numero; restituisce quanti episodi nuovi sono comparsi */
+function applyFetched(s,o){
+  var old={}, before=s.total;
+  if(hasStruct(s)) s.seasons.forEach(function(se){
+    var a=seenArr(s,se.season);
+    se.eps.forEach(function(e,i){ if(a[i]) old[se.season+"x"+e.n]=1 });
+  });
+  s.seasons=o.seasons; s.seen={};
+  s.seasons.forEach(function(se){
+    s.seen[se.season]=se.eps.map(function(e){ return old[se.season+"x"+e.n]?1:0 });
+  });
+  s.poster=s.poster||o.poster; s.year=s.year||o.year;
+  if(o.ended===true||o.ended===false) s.ended=o.ended;
+  if(o.pstat) s.pstat=o.pstat;
+  recalc(s); s.status=statusOf(s); tocca(s,false);
+  return Math.max(0,s.total-before);
+}
+/* ---- allineamento a TMDb: titolo italiano, locandina e stato di produzione ----
+   La struttura degli episodi resta quella della fonte originale (s.src),
+   quindi le spunte non si spostano. TMDb fa solo da anagrafica (s.meta).      */
+function tmdbDetail(id){
+  return getJSON("https://api.themoviedb.org/3/tv/"+id+"?language=it-IT&api_key="+encodeURIComponent(tmdbKey()));
+}
+/* Dove si vede adesso: TMDb espone i dati di JustWatch per paese. Prendiamo solo
+   le piattaforme in abbonamento (flatrate): noleggio e acquisto non rispondono
+   alla domanda "ce l'ho già compreso in un abbonamento?".                     */
+function tmdbPiattaforme(id){
+  return getJSON("https://api.themoviedb.org/3/tv/"+id+"/watch/providers?api_key="+encodeURIComponent(tmdbKey()))
+    .then(function(j){
+      var it=(j.results||{}).IT||{};
+      return { nomi:(it.flatrate||[]).map(function(p){
+                 return {n:p.provider_name, l:p.logo_path||""};   // nome e logo quadrato
+               }),
+               link:it.link||"" };
+    })
+    .catch(function(){ return null });
+}
+function resolveMeta(s,imdb){
+  if(s.meta) return Promise.resolve(s.meta);
+  if(s.src && s.src.p==="tmdb"){ s.meta={p:"tmdb",id:s.src.id}; return Promise.resolve(s.meta) }
+  if(!imdb) return Promise.resolve(null);
+  return getJSON("https://api.themoviedb.org/3/find/"+encodeURIComponent(imdb)+
+                 "?external_source=imdb_id&language=it-IT&api_key="+encodeURIComponent(tmdbKey()))
+    .then(function(f){
+      var r=(f.tv_results||[])[0];
+      if(!r) return null;
+      s.meta={p:"tmdb",id:r.id};
+      return s.meta;
+    }).catch(function(){ return null });
+}
+/* esito: {nuovi, titolo:"vecchio→nuovo"|null, stato:true|false} */
+function syncShow(s){
+  var res={nuovi:0,titolo:null,stato:false};
+  // fotografia iniziale: il confronto va fatto con com'era la serie prima di
+  // toccarla, non con i valori intermedi della fonte della struttura
+  var eraEnded=s.ended;
+  return fetchShow(s.src).then(function(o){
+    res.nuovi=applyFetched(s,o);
+    if(!tmdbKey()) return null;
+    return resolveMeta(s,o.imdb);
+  }).then(function(m){
+    if(!m) return null;
+    return tmdbDetail(m.id).then(function(d){
+      var nome=(d.name||"").trim();
+      if(nome && nome!==s.title){ res.titolo=s.title+" → "+nome; s.title=nome }
+      if(d.original_name && d.original_name!==nome) s.orig=d.original_name;
+      if(d.poster_path) s.poster=tmdbImg(d.poster_path);
+      if(d.first_air_date) s.year=(d.first_air_date||"").slice(0,4);
+      s.ended=!(d.status==="Returning Series"||d.status==="In Production");
+      s.pstat=d.status||s.pstat;
+      s.status=statusOf(s); tocca(s,false);
+      // dove si vede: serve solo per le serie che hai in corso o da vedere
+      if(s.status==="watching" || s.status==="plan")
+        return tmdbPiattaforme(m.id).then(function(p){
+          if(p){ s.piatt=p.nomi; s.piattLink=p.link; s.piattQuando=Date.now(); tocca(s,false) }
+          return null;
+        });
+      return null;
+    }).catch(function(){ return null });
+  }).then(function(){
+    // non solo "è cambiato", ma in quale direzione
+    res.stato = (s.ended!==eraEnded) ? (s.ended?"ora conclusa":"ora in produzione") : null;
+    return res;
+  });
+}
+/* ============ backup ============ */
+document.getElementById("bExp").onclick=function(){
+  var blob=new Blob([JSON.stringify({app:"serie-tracker",v:2,exported:new Date().toISOString(),shows:db.shows})],
+                    {type:"application/json"});
+  var a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="serie-backup-"+new Date().toISOString().slice(0,10)+".json";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(a.href) },2000);
+  toast("Backup salvato");
+};
+document.getElementById("bImp").onclick=function(){ document.getElementById("fImp").click() };
+document.getElementById("fImp").onchange=function(e){
+  var f=e.target.files[0]; if(!f) return;
+  var fr=new FileReader();
+  fr.onload=function(){
+    try{
+      var d=JSON.parse(fr.result), inc=Array.isArray(d)?d:d.shows;
+      if(!Array.isArray(inc)) throw 0;
+      var merge=db.shows.length && confirm("Unire al contenuto attuale?\n\nOK = unisci  ·  Annulla = sostituisci tutto");
+      if(!merge) db.shows=[];
+      var n=0;
+      inc.forEach(function(s){
+        if(!s||!s.title) return;
+        if(db.shows.some(function(x){ return x.title.toLowerCase()===String(s.title).toLowerCase() })) return;
+        db.shows.push(migrate(s)); n++;
+      });
+      render(); toast(n+" serie importate");
+    }catch(err){ toast("File non valido") }
+  };
+  fr.readAsText(f);
+  e.target.value="";
+};
+
+/* ============ importazione dall'archivio TV Time ============
+   Il file contiene, per ogni serie, l'ID TheTVDB già risolto in ID TVmaze
+   e l'elenco [stagione, episodio] di ciò che risulta visto.
+   Qui si scarica la struttura reale della serie e si spuntano gli episodi.
+============================================================= */
+var ovImp=document.getElementById("ovImp"), impStop=false;
+document.getElementById("bTvt").onclick=function(){ document.getElementById("fTvt").click() };
+document.getElementById("iStop").onclick=function(){ impStop=true };
+document.getElementById("iClose").onclick=function(){ ovImp.classList.remove("on") };
+document.getElementById("fTvt").onchange=function(e){
+  var f=e.target.files[0]; e.target.value=""; if(!f) return;
+  var fr=new FileReader();
+  fr.onload=function(){
+    var d; try{ d=JSON.parse(fr.result) }catch(err){ toast("File non valido"); return }
+    var list=Array.isArray(d)?d:d.shows;
+    if(!Array.isArray(list)||!list.length){ toast("Nessuna serie nel file"); return }
+    runImport(list);
+  };
+  fr.readAsText(f);
+};
+
+function runImport(list){
+  impStop=false;
+  document.getElementById("iTtl").textContent="Importazione dall'archivio TV Time";
+  ovImp.classList.add("on");
+  document.getElementById("iClose").hidden=true;
+  document.getElementById("iStop").hidden=false;
+  var bar=document.getElementById("iBar"), msg=document.getElementById("iMsg"),
+      log=document.getElementById("iLog");
+  log.innerHTML="";
+  var rep={add:0, skip:0, eps:0, lost:0, noMatch:[], partial:[], failed:[]};
+
+  var haveTitle={}, haveSrc={};
+  db.shows.forEach(function(s){
+    haveTitle[s.title.toLowerCase()]=1;
+    if(s.src && s.src.p==="tvmaze") haveSrc["tvmaze:"+s.src.id]=1;
+  });
+
+  function step(k){
+    if(impStop || k>=list.length) return finish(k);
+    var it=list[k];
+    bar.style.width=Math.round(k/list.length*100)+"%";
+    msg.textContent=(k+1)+" di "+list.length+" · "+(it.title||"");
+
+    if(haveTitle[String(it.title||"").toLowerCase()] || (it.tvmaze&&haveSrc["tvmaze:"+it.tvmaze])){
+      rep.skip++; return setTimeout(function(){ step(k+1) },0);
+    }
+    if(!it.tvmaze){                       // nessuna corrispondenza nel database
+      addFlat(it); rep.noMatch.push(it.title);
+      return setTimeout(function(){ step(k+1) },0);
+    }
+    fetch("https://api.tvmaze.com/shows/"+it.tvmaze+"?embed=episodes")
+      .then(function(r){ if(r.status===429) throw new Error("429"); if(!r.ok) throw new Error("http"); return r.json() })
+      .then(function(sh){
+        var bys={};
+        ((sh._embedded&&sh._embedded.episodes)||[]).forEach(function(e){
+          if(e.season==null||e.number==null) return;
+          (bys[e.season]=bys[e.season]||[]).push({n:e.number,name:e.name||"",d:e.airdate||"9999"});
+        });
+        var seasons=pack(bys);
+        var s={ id:uid(), title:it.title||sh.name, year:(sh.premiered||"").slice(0,4),
+          poster:(sh.image&&sh.image.medium)||"", src:{p:"tvmaze",id:sh.id}, tvmaze:sh.id,
+          ended:sh.status!=="Running", pstat:sh.status||"",
+          seasons:seasons, seen:{}, total:0, watched:0, status:"plan", rating:0, note:"",
+          open:false, openSea:null, added:Date.now(), updated:Date.now(), sync:Date.now() };
+        var idx={}, lost=0;
+        seasons.forEach(function(se){
+          s.seen[se.season]=se.eps.map(function(){ return 0 });
+          se.eps.forEach(function(ep,i){ idx[se.season+"x"+ep.n]=[se.season,i] });
+        });
+        (it.eps||[]).forEach(function(p){
+          var hit=idx[p[0]+"x"+p[1]];
+          // TheTVDB e TVmaze a volte dividono le stagioni in modo diverso:
+          // se qui la serie ha una sola stagione, vale il solo numero di episodio
+          if(!hit && seasons.length===1) hit=idx[seasons[0].season+"x"+p[1]];
+          if(hit) s.seen[hit[0]][hit[1]]=1; else lost++;
+        });
+        recalc(s); s.status=statusOf(s);
+        db.shows.push(s);
+        rep.add++; rep.eps+=s.watched; rep.lost+=lost;
+        if(lost) rep.partial.push(s.title+" ("+lost+" non collocati)");
+        setTimeout(function(){ step(k+1) }, 170);
+      })
+      .catch(function(err){
+        if(String(err.message)==="429"){ return setTimeout(function(){ step(k) },4000) }  // riprova
+        addFlat(it); rep.failed.push(it.title);
+        setTimeout(function(){ step(k+1) }, 170);
+      });
+  }
+
+  /* serie senza struttura disponibile: una sola stagione con gli episodi visti */
+  function addFlat(it){
+    var n=(it.eps||[]).length;
+    var s={ id:uid(), title:it.title||"senza titolo", year:"", poster:"", src:null, tvmaze:null,
+      seasons:[], seen:{}, total:n, watched:n, status:"plan", rating:0,
+      note:"da verificare: struttura non trovata nel database",
+      open:false, openSea:null, added:Date.now(), updated:Date.now(), sync:Date.now() };
+    if(n) applyStruct(s,[n]);
+    recalc(s); s.status=statusOf(s);
+    db.shows.push(s); rep.add++; rep.eps+=s.watched;
+  }
+
+  function finish(k){
+    bar.style.width="100%";
+    document.getElementById("iStop").hidden=true;
+    document.getElementById("iClose").hidden=false;
+    msg.textContent = impStop ? "Interrotta a "+k+" serie su "+list.length+"." : "Completata.";
+    var h='<div class="ri" style="cursor:default"><span>'+
+      '<span class="n">'+rep.add+' serie importate · '+rep.eps+' episodi spuntati</span><br>'+
+      '<span class="s">'+(rep.skip?rep.skip+" già presenti, saltate · ":"")+
+      (rep.lost?rep.lost+" episodi non collocati":"nessun episodio perso")+'</span></span></div>';
+    function block(t,arr){
+      if(!arr.length) return "";
+      return '<div class="ri" style="cursor:default; align-items:flex-start"><span>'+
+        '<span class="n">'+t+' ('+arr.length+')</span><br><span class="s">'+
+        esc(arr.join(" · "))+'</span></span></div>';
+    }
+    h+=block("Numerazione diversa, controlla le stagioni",rep.partial);
+    h+=block("Nessuna corrispondenza nel database",rep.noMatch);
+    h+=block("Scaricamento non riuscito",rep.failed);
+    log.innerHTML=h;
+    render();
+  }
+
+  step(0);
+}
+
+/* ============ aggiornamento di tutte le serie ============
+   Ricontrolla struttura e stato di produzione: fa comparire gli episodi
+   delle stagioni nuove e sposta in "In pari" le serie ancora in corsa.
+========================================================== */
+document.getElementById("bRef").onclick=function(){
+  var list=db.shows.filter(function(s){ return s.src && hasKey(s.src.p) });
+  if(!list.length){ toast("Nessuna serie collegata a un database"); return }
+  impStop=false;
+  document.getElementById("iTtl").textContent="Aggiornamento di tutte le serie";
+  ovImp.classList.add("on");
+  document.getElementById("iClose").hidden=true;
+  document.getElementById("iStop").hidden=false;
+  var bar=document.getElementById("iBar"), msg=document.getElementById("iMsg"),
+      log=document.getElementById("iLog");
+  log.innerHTML="";
+  var ok=0, err=0, nuovi=0, cambiate=[], titoli=[], stati=[], nuoviEp=[];
+
+  function step(k){
+    if(impStop || k>=list.length){
+      bar.style.width="100%";
+      document.getElementById("iStop").hidden=true;
+      document.getElementById("iClose").hidden=false;
+      msg.textContent=(impStop?"Interrotto a "+k+" di "+list.length:"Completato")+
+        " · "+ok+" aggiornate"+(err?", "+err+" non raggiungibili":"");
+      var fuse=fondiDoppioni();        // a metas risolti, le schede gemelle si riconoscono
+      // gli elenchi si leggono meglio in ordine alfabetico che in ordine di elaborazione
+      function ord(a){ return a.slice().sort(function(x,y){ return x.localeCompare(y,"it") }) }
+      function blk(t,a){
+        var txt = (a instanceof Array) ? ord(a).join(" · ") : a;
+        return txt?'<div class="ri" style="cursor:default; align-items:flex-start">'+
+          '<span><span class="n">'+t+'</span><br><span class="s">'+esc(txt)+'</span></span></div>':"";
+      }
+      log.innerHTML=
+        '<div class="ri" style="cursor:default"><span><span class="n">'+
+          (nuovi?nuovi+" episodi nuovi":"Nessun episodio nuovo")+
+          (stati.length?" · "+stati.length+" stati di produzione corretti":"")+
+        '</span><br><span class="s">'+
+          (titoli.length?titoli.length+" titoli aggiornati da TMDb":"Nessun titolo cambiato")+
+        '</span></span></div>'+
+        blk("Doppioni uniti",fuse.map(function(x){
+              return x.titolo+(x.visti?" ("+x.visti+" ep trasferiti nella scheda rimasta)":"") }))+
+        blk("Stato di produzione corretto",stati)+
+        blk("Episodi nuovi",nuoviEp)+
+        blk("Hanno cambiato colonna",cambiate)+
+        blk("Titoli aggiornati",titoli);
+      render();
+      // invio subito, senza aspettare il ritardo: è il momento in cui si chiude la pagina
+      clearTimeout(autoPush._t);
+      inviaPendenti().then(function(){ accUI() });
+      return;
+    }
+    var s=list[k];
+    bar.style.width=Math.round(k/list.length*100)+"%";
+    msg.textContent=(k+1)+" di "+list.length+" · "+s.title;
+    var was=s.status;
+    syncShow(s).then(function(r){
+      ok++; nuovi+=r.nuovi;
+      if(r.titolo) titoli.push(r.titolo);
+      if(r.stato) stati.push(s.title+": "+r.stato);
+      if(r.nuovi) nuoviEp.push(s.title+" +"+r.nuovi);
+      if(s.status!==was) cambiate.push(s.title+": "+NOMI[was]+" → "+NOMI[s.status]);
+      setTimeout(function(){ step(k+1) },170);
+    }).catch(function(){ err++; setTimeout(function(){ step(k+1) },170) });
+  }
+  step(0);
+};
+
+/* ---- fusione dei doppioni ------------------------------------------------
+   Due schede della stessa serie prese da database diversi hanno titoli e
+   strutture differenti, ma dopo l'allineamento puntano alla stessa pagina
+   TMDb: è quello l'elemento che le smaschera. Tengo la scheda con più
+   episodi spuntati e le travaso voto, nota e stato dall'altra.
+--------------------------------------------------------------------------- */
+function fondiDoppioni(){
+  var per={}, tolte=[];
+  db.shows.forEach(function(s){
+    if(!s.meta || !s.meta.id) return;
+    (per[s.meta.id]=per[s.meta.id]||[]).push(s);
+  });
+  Object.keys(per).forEach(function(k){
+    var gruppo=per[k]; if(gruppo.length<2) return;
+    // la base è quella con più episodi visti; a pari merito la più recente
+    gruppo.sort(function(a,b){ return (b.watched||0)-(a.watched||0) || (b.updated||0)-(a.updated||0) });
+    var base=gruppo[0];
+    gruppo.slice(1).forEach(function(s){
+      if(!base.rating && s.rating) base.rating=s.rating;              // il voto non si perde
+      if(!base.note && s.note) base.note=s.note;
+      if(!base.orig && s.orig) base.orig=s.orig;
+      if(s.dropped) base.dropped=true;
+      if((s.added||0) && (!base.added || s.added<base.added)) base.added=s.added;
+      tolte.push({titolo:s.title, visti:s.watched||0, id:s.id});
+      db.shows.splice(db.shows.indexOf(s),1);
+      if(typeof delq!=="undefined"){ delq.push(s.id); saveSess() }      // via anche dal server
+    });
+    tocca(base,true);
+    recalc(base); base.status=statusOf(base);
+  });
+  return tolte;
+}
+
+/* ===================== account e sincronizzazione =====================
+   Server: Supabase (Postgres). La chiave qui sotto è la "anon public",
+   pensata per stare nel client: da sola non dà accesso a niente, perché
+   ogni riga è protetta dalle regole di sicurezza della tabella.
+   Strategia: la copia locale resta la verità di lavoro (funziona offline),
+   il server è la copia condivisa fra i dispositivi. A ogni sincronizzazione
+   vince, serie per serie, la versione modificata più di recente.
+====================================================================== */
+var SB_URL="https://cciycxllvuxjotfqrubw.supabase.co";
+var SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjaXljeGxsdnV4am90ZnFydWJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4OTI2NTAsImV4cCI6MjEwNzQ2ODY1MH0.rhp8HmRLk2L-D1xdujNQHHf0YwmpSbOOZ4O6o_dmgt8";
+var SESS="serie-tracker-sess", DELQ="serie-tracker-delq";
+var sess=null, delq=[];
+
+function loadSess(){
+  try{ sess=JSON.parse(localStorage.getItem(SESS)||"null") }catch(e){ sess=null }
+  try{ delq=JSON.parse(localStorage.getItem(DELQ)||"[]") }catch(e){ delq=[] }
+}
+function saveSess(){
+  try{
+    if(sess) localStorage.setItem(SESS,JSON.stringify(sess)); else localStorage.removeItem(SESS);
+    localStorage.setItem(DELQ,JSON.stringify(delq));
+  }catch(e){}
+}
+function connesso(){ return !!(sess && sess.access_token) }
+/* modifiche fatte qui e non ancora arrivate al server */
+function inSospeso(){
+  if(!connesso()) return 0;
+  return db.shows.filter(function(s){ return (s.sync||s.updated||0)>(sess.lastPush||0) }).length
+         + delq.length;
+}
+
+function sbFetch(path,opt,noRetry){
+  opt=opt||{};
+  var h=opt.headers||{};
+  h["apikey"]=SB_KEY;
+  h["Content-Type"]="application/json";
+  if(connesso()) h["Authorization"]="Bearer "+sess.access_token;
+  opt.headers=h;
+  return fetch(SB_URL+path,opt).then(function(r){
+    if(r.status===401 && connesso() && !noRetry)
+      return refreshSess().then(function(){ return sbFetch(path,opt,true) });
+    return r;
+  });
+}
+function refreshSess(){
+  if(!sess || !sess.refresh_token) return Promise.reject(new Error("sessione scaduta"));
+  return fetch(SB_URL+"/auth/v1/token?grant_type=refresh_token",{
+    method:"POST", headers:{apikey:SB_KEY,"Content-Type":"application/json"},
+    body:JSON.stringify({refresh_token:sess.refresh_token})
+  }).then(function(r){ return r.json() }).then(function(d){
+    if(!d.access_token) throw new Error("sessione scaduta");
+    sess={access_token:d.access_token, refresh_token:d.refresh_token,
+          email:(d.user&&d.user.email)||(sess&&sess.email)||""};
+    saveSess(); return sess;
+  });
+}
+
+/* ---- accesso ---- */
+function authCall(path,email,pass){
+  return fetch(SB_URL+path,{
+    method:"POST", headers:{apikey:SB_KEY,"Content-Type":"application/json"},
+    body:JSON.stringify({email:email,password:pass})
+  }).then(function(r){ return r.json().then(function(d){ return {ok:r.ok,d:d} }) });
+}
+function erroreAuth(d){
+  var m=(d&&(d.msg||d.error_description||d.message||d.error))||"errore";
+  if(/invalid login/i.test(m)) return "Email o password non validi";
+  if(/already registered|already exists/i.test(m)) return "Account già esistente: usa Accedi";
+  if(/password/i.test(m) && /least|short/i.test(m)) return "Password troppo corta";
+  if(/confirm/i.test(m)) return "Devi confermare l'email prima di accedere";
+  return m;
+}
+
+/* ---- dati ---- */
+function pullRemote(){
+  return sbFetch("/rest/v1/series?select=id,payload,updated_at").then(function(r){
+    if(!r.ok) return r.text().then(function(t){ throw new Error("lettura: "+t.slice(0,120)) });
+    return r.json();
+  });
+}
+function pushShows(lista){
+  if(!lista.length) return Promise.resolve();
+  var righe=lista.map(function(s){
+    return { id:s.id, payload:s, updated_at:new Date(s.updated||Date.now()).toISOString() };
+  });
+  // a blocchi, per non spedire un corpo enorme
+  var blocchi=[]; for(var i=0;i<righe.length;i+=80) blocchi.push(righe.slice(i,i+80));
+  return blocchi.reduce(function(p,b){
+    return p.then(function(){
+      return sbFetch("/rest/v1/series?on_conflict=user_id,id",{
+        method:"POST",
+        headers:{Prefer:"resolution=merge-duplicates,return=minimal"},
+        body:JSON.stringify(b)
+      }).then(function(r){
+        if(!r.ok) return r.text().then(function(t){ throw new Error("scrittura: "+t.slice(0,120)) });
+      });
+    });
+  },Promise.resolve());
+}
+function flushDeletes(){
+  if(!delq.length) return Promise.resolve(0);
+  var ids=delq.slice();
+  return sbFetch("/rest/v1/series?id=in.("+ids.map(encodeURIComponent).join(",")+")",
+                 {method:"DELETE",headers:{Prefer:"return=minimal"}})
+    .then(function(r){
+      if(!r.ok) return 0;
+      delq=delq.filter(function(x){ return ids.indexOf(x)<0 }); saveSess();
+      return ids.length;
+    });
+}
+
+/* fusione: per ogni serie vince la versione con "updated" più recente */
+function syncNow(){
+  if(!connesso()) return Promise.reject(new Error("non connesso"));
+  var rep={scaricate:0,aggiornate:0,caricate:0,cancellate:0};
+  return flushDeletes().then(function(n){ rep.cancellate=n; return pullRemote() })
+    .then(function(remote){
+      var locali={}; db.shows.forEach(function(s){ locali[s.id]=s });
+      var remoti={}, daCaricare=[];
+      remote.forEach(function(r){
+        remoti[r.id]=r;
+        var l=locali[r.id], rs=r.payload;
+        if(!rs || !rs.title) return;
+        if(!l){ db.shows.push(migrate(rs)); rep.scaricate++; return }
+        var piuRecente=(rs.updated||0)>(l.updated||0);
+        var pariMaPiuFresco=(rs.updated||0)===(l.updated||0) &&
+                            (rs.sync||0)>(l.sync||l.updated||0);
+        if(piuRecente || pariMaPiuFresco){
+          var i=db.shows.indexOf(l);
+          db.shows[i]=migrate(rs); rep.aggiornate++;
+        }
+      });
+      db.shows.forEach(function(s){
+        var r=remoti[s.id];
+        var mio=(s.sync||s.updated||0), suo=(r&&r.payload)?(r.payload.sync||r.payload.updated||0):0;
+        if(!r || mio>suo) daCaricare.push(s);
+      });
+      rep.caricate=daCaricare.length;
+      return pushShows(daCaricare);
+    })
+    .then(function(){
+      sess.last=Date.now(); saveSess(); render();
+      return rep;
+    });
+}
+
+/* ---- interfaccia ---- */
+var ovAcc=document.getElementById("ovAcc");
+function accUI(){
+  var on=connesso();
+  document.getElementById("accOff").hidden=on;
+  document.getElementById("accOn").hidden=!on;
+  document.getElementById("bAcc").textContent = on ? "☁ "+(sess.email||"connesso") : "☁ Accedi";
+  if(on){
+    var pend=inSospeso();
+    document.getElementById("accWho").innerHTML=
+      "Connesso come <b>"+esc(sess.email||"")+"</b>."+
+      (sess.last?" Ultima sincronizzazione: "+new Date(sess.last).toLocaleString("it-IT")+".":
+                  " Non hai ancora sincronizzato.")+
+      (pend?'<br><b style="color:var(--warn)">'+pend+
+            (pend===1?" modifica non ancora inviata":" modifiche non ancora inviate")+
+            '</b> — premi Sincronizza ora.':'<br>Tutto inviato.');
+  }
+}
+document.getElementById("bAcc").onclick=function(){ accUI(); ovAcc.classList.add("on") };
+document.getElementById("bStart").onclick=function(){ accUI(); ovAcc.classList.add("on") };
+document.getElementById("bGuest").onclick=function(){
+  // niente account: si lavora sulla copia locale, come prima
+  document.getElementById("benvenuto").hidden=true;
+  document.querySelector("main").hidden=false;
+  document.getElementById("tabBar").hidden=false;
+  document.querySelector(".tools").style.display="";
+  openAdd();
+};
+document.getElementById("accClose1").onclick=function(){ ovAcc.classList.remove("on") };
+document.getElementById("accClose2").onclick=function(){ ovAcc.classList.remove("on") };
+ovAcc.addEventListener("click",function(e){ if(e.target===ovAcc) ovAcc.classList.remove("on") });
+
+function entra(path,etichetta){
+  var e=document.getElementById("accMail").value.trim(),
+      p=document.getElementById("accPass").value;
+  if(!e||!p){ toast("Email e password sono obbligatorie"); return }
+  toast(etichetta+"…");
+  authCall(path,e,p).then(function(r){
+    if(!r.ok || !r.d.access_token){
+      if(r.ok && path.indexOf("signup")>-1 && !r.d.access_token){
+        toast("Account creato: conferma l'email, poi accedi"); return;
+      }
+      toast(erroreAuth(r.d)); return;
+    }
+    sess={access_token:r.d.access_token, refresh_token:r.d.refresh_token,
+          email:(r.d.user&&r.d.user.email)||e, last:0};
+    saveSess(); accUI();
+    document.getElementById("accPass").value="";
+    primaSync();
+  }).catch(function(){ toast("Server non raggiungibile") });
+}
+document.getElementById("bLogin").onclick=function(){ entra("/auth/v1/token?grant_type=password","Accesso") };
+document.getElementById("bReg").onclick=function(){ entra("/auth/v1/signup","Creazione account") };
+document.getElementById("bWipe").onclick=function(){
+  if(!connesso()) return;
+  if(!confirm("Cancellare dal server tutte le serie del tuo account?\n\n"+
+              "La copia su questo dispositivo resta intatta.")) return;
+  var b=this; b.textContent="Cancellazione…";
+  // le regole di sicurezza limitano la cancellazione alle proprie righe
+  sbFetch("/rest/v1/series?id=not.is.null",{method:"DELETE",headers:{Prefer:"return=minimal"}})
+    .then(function(r){
+      b.textContent="Elimina i miei dati dal server";
+      if(!r.ok) throw new Error("rifiutata");
+      delq=[]; sess.lastPush=Date.now()+1; saveSess();
+      document.getElementById("accLog").innerHTML=
+        '<div class="ri" style="cursor:default"><span><span class="n">Dati rimossi dal server</span><br>'+
+        '<span class="s">Le serie restano su questo dispositivo. '+
+        'Sincronizzando di nuovo verrebbero ricaricate: se non lo vuoi, esci dall\'account.</span></span></div>';
+      toast("Dati cancellati dal server");
+    })
+    .catch(function(){ b.textContent="Elimina i miei dati dal server"; toast("Cancellazione non riuscita") });
+};
+document.getElementById("bLogout").onclick=function(){
+  sess=null; saveSess(); accUI(); ovAcc.classList.remove("on");
+  toast("Uscito. I dati restano su questo dispositivo.");
+};
+document.getElementById("bSync").onclick=function(){
+  var b=this, t=b.textContent; b.textContent="⇅ in corso…";
+  syncNow().then(function(r){
+    b.textContent=t; accUI();
+    document.getElementById("accLog").innerHTML=
+      '<div class="ri" style="cursor:default"><span><span class="n">Sincronizzazione completata</span><br>'+
+      '<span class="s">'+r.caricate+' caricate · '+r.scaricate+' nuove dal server · '+
+      r.aggiornate+' aggiornate · '+r.cancellate+' cancellazioni propagate</span></span></div>';
+    toast("Sincronizzato");
+  }).catch(function(err){
+    b.textContent=t;
+    document.getElementById("accLog").innerHTML=
+      '<div class="empty" style="text-align:left">Non riuscita: '+esc(err.message)+'</div>';
+  });
+};
+/* invio delle modifiche al server. Normalmente raggruppato dopo quattro secondi,
+   per non fare una chiamata a ogni clic; subito quando glielo chiediamo noi. */
+function inviaPendenti(){
+  if(!connesso()) return Promise.resolve();
+  var da=db.shows.filter(function(s){ return (s.sync||s.updated||0)>(sess.lastPush||0) });
+  if(!da.length && !delq.length) return Promise.resolve();
+  return flushDeletes().then(function(){ return pushShows(da) }).then(function(){
+    sess.lastPush=Date.now(); sess.last=sess.lastPush; saveSess(); accUI();
+  }).catch(function(){ /* ritenta al prossimo cambiamento o dalla finestra account */ });
+}
+function autoPush(){
+  if(!connesso()) return;
+  clearTimeout(autoPush._t);
+  autoPush._t=setTimeout(inviaPendenti,1500);
+}
+/* se la pagina viene chiusa o messa in secondo piano non aspettiamo il ritardo:
+   è il momento in cui l'invio differito andrebbe perso */
+document.addEventListener("visibilitychange",function(){
+  if(document.visibilityState==="hidden"){ clearTimeout(autoPush._t); inviaPendenti() }
+});
+window.addEventListener("pagehide",function(){ clearTimeout(autoPush._t); inviaPendenti() });
+
+function primaSync(){
+  document.getElementById("accLog").innerHTML='<div class="empty">Primo allineamento…</div>';
+  document.getElementById("bSync").click();
+}
+
+/* L'indirizzo viene composto qui invece che scritto nella pagina: i programmi
+   che raccolgono email per lo spam leggono il codice ma non lo eseguono.    */
+(function(){
+  var casella="info", dominio="tvlog.it", ind=casella+"@"+dominio;
+  Array.prototype.forEach.call(document.querySelectorAll(".posta"),function(el){
+    var a=document.createElement("a");
+    a.href="mailto:"+ind; a.textContent=ind;
+    a.style.color="inherit";
+    el.appendChild(a);
+  });
+})();
+
+/* ============ avvio ============ */
+document.getElementById("q").addEventListener("input",render);
+document.getElementById("sort").addEventListener("change",render);
+document.getElementById("fvoto").addEventListener("change",render);
+document.addEventListener("keydown",function(e){
+  if(e.key==="Escape"){ ovAdd.classList.remove("on"); ovImp.classList.remove("on") }
+});
+loadCfg();
+document.getElementById("prov").value=cfg.prov||"tmdb";
+document.getElementById("tmdbKey").value=cfg.tmdbKey||"";
+document.getElementById("omdbKey").value=cfg.omdbKey||"";
+syncProvUI();
+loadSess();
+try{ var tsalv=localStorage.getItem(KEY+":tab"); if(COLS.indexOf(tsalv)>-1) tabAttiva=tsalv }catch(e){}
+load(); render();
+accUI();
+if(connesso()) syncNow().then(function(r){
+  accUI();
+  if(r.scaricate||r.aggiornate||r.caricate)
+    toast("Allineato: "+r.scaricate+" nuove, "+r.aggiornate+" aggiornate, "+r.caricate+" inviate");
+}).catch(function(){ toast("Sincronizzazione non riuscita: lavori sulla copia locale") });
+if(!storageOk()){
+  var w=document.createElement("div");
+  w.style.cssText="background:#4a2b16;border:1px solid #7a4a20;color:#ffd9a8;padding:10px 14px;"+
+    "font-size:13px;border-radius:12px;margin:0 14px 0";
+  w.textContent="⚠ Questo browser non sta salvando i dati (archiviazione locale bloccata): "+
+    "le modifiche andranno perse alla chiusura. Apri la pagina da un indirizzo http/https oppure fai subito un backup.";
+  document.querySelector("main").parentNode.insertBefore(w,document.querySelector("main"));
+}
+})();
+</script>
+</body>
+</html>
