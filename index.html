@@ -82,6 +82,11 @@
     #bAdd{order:1} .sec2{order:2} #q{order:3} #fvoto{order:4} #sort{order:5}
     .tools .sp{display:none}                /* niente spaziatore: qui si va a capo */
     .tools .sec{order:6}
+    /* nelle finestre, le righe a più elementi vanno a capo invece di
+       schiacciare il campo di testo fino a renderlo illeggibile */
+    .modal .rowf{flex-wrap:wrap}
+    #sq{flex:1 1 100%}                      /* il titolo da cercare su tutta la riga */
+    #prov{flex:1 1 auto; max-width:none}
     #tabBar{display:flex; gap:6px; padding:8px 10px 0; overflow-x:auto}
     #tabBar button{flex:1 0 auto; background:var(--panel); border:1px solid var(--line);
       color:var(--dim); border-radius:10px; padding:8px 10px; font-size:12.5px; cursor:pointer;
@@ -347,7 +352,7 @@
   <a href="https://www.justwatch.com" target="_blank" rel="noopener" style="color:#6b7888">JustWatch</a>
   via TMDb.<br>
   Segnalazioni e suggerimenti: <span class="posta"></span>
-  · <span title="Serve a capire se un dispositivo sta usando una versione vecchia">versione del 27 ottobre 2026 · f</span>
+  · <span title="Serve a capire se un dispositivo sta usando una versione vecchia">versione del 27 ottobre 2026 · g</span>
 </footer>
 
 <div class="ov" id="ovAdd">
