@@ -352,7 +352,7 @@
   <a href="https://www.justwatch.com" target="_blank" rel="noopener" style="color:#6b7888">JustWatch</a>
   via TMDb.<br>
   Segnalazioni e suggerimenti: <span class="posta"></span>
-  · <span title="Serve a capire se un dispositivo sta usando una versione vecchia">versione del 27 ottobre 2026 · g</span>
+  · <span title="Serve a capire se un dispositivo sta usando una versione vecchia">versione del 29 ottobre 2026</span>
 </footer>
 
 <div class="ov" id="ovAdd">
@@ -2030,7 +2030,10 @@ function primaSync(){
 
 /* ============ avvio ============ */
 document.getElementById("q").addEventListener("input",render);
-document.getElementById("sort").addEventListener("change",render);
+document.getElementById("sort").addEventListener("change",function(){
+  try{ localStorage.setItem(KEY+":sort",this.value) }catch(e){}   // l'ordinamento si ricorda
+  render();
+});
 document.getElementById("fvoto").addEventListener("change",render);
 document.addEventListener("keydown",function(e){
   if(e.key==="Escape"){ ovAdd.classList.remove("on"); ovImp.classList.remove("on") }
@@ -2042,6 +2045,10 @@ document.getElementById("omdbKey").value=cfg.omdbKey||"";
 syncProvUI();
 loadSess();
 try{ var tsalv=localStorage.getItem(KEY+":tab"); if(COLS.indexOf(tsalv)>-1) tabAttiva=tsalv }catch(e){}
+try{
+  var osalv=localStorage.getItem(KEY+":sort"), selOrd=document.getElementById("sort");
+  if(osalv && [].some.call(selOrd.options,function(o){ return o.value===osalv })) selOrd.value=osalv;
+}catch(e){}
 load(); render();
 accUI();
 if(connesso()) syncNow().then(function(r){
