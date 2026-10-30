@@ -79,7 +79,11 @@
     .tools .sec{display:none}              /* i comandi secondari stanno nel menù */
     .tools.aperta .sec{display:inline-block}
     .tools.aperta{padding-bottom:2px}
-    #q{flex:1 1 100%}                       /* il filtro si prende tutta la riga */
+    /* il filtro per nome condivide la riga col filtro voti: la larghezza minima
+       del primo lo costringe ad andare a capo dopo i due pulsanti, e il secondo
+       gli sta accanto senza rubargli troppo spazio */
+    #q{flex:1 1 55%; min-width:55%}
+    #fvoto{flex:0 1 auto; max-width:42%}
     /* Su telefono "Funzioni" sale accanto ad "Aggiungi serie": così voti e
        ordinamento stanno insieme sulla riga dopo, e se ne guadagna una.
        Si riordina solo la vista, il documento resta com'è.                 */
@@ -357,7 +361,7 @@
   <a href="https://www.justwatch.com" target="_blank" rel="noopener" style="color:#6b7888">JustWatch</a>
   via TMDb.<br>
   Segnalazioni e suggerimenti: <span class="posta"></span>
-  · <span title="Serve a capire se un dispositivo sta usando una versione vecchia">versione del 30 ottobre 2026 · e</span>
+  · <span title="Serve a capire se un dispositivo sta usando una versione vecchia">versione del 30 ottobre 2026 · f</span>
 </footer>
 
 <div class="ov" id="ovAdd">
