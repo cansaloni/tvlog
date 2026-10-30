@@ -357,7 +357,7 @@
   <a href="https://www.justwatch.com" target="_blank" rel="noopener" style="color:#6b7888">JustWatch</a>
   via TMDb.<br>
   Segnalazioni e suggerimenti: <span class="posta"></span>
-  · <span title="Serve a capire se un dispositivo sta usando una versione vecchia">versione del 30 ottobre 2026 · c</span>
+  · <span title="Serve a capire se un dispositivo sta usando una versione vecchia">versione del 30 ottobre 2026 · d</span>
 </footer>
 
 <div class="ov" id="ovAdd">
@@ -1327,12 +1327,14 @@ function fetchTmdb(id){
         });
       });
       var fin=!(sh.status==="Returning Series"||sh.status==="In Production");
-      return { title:sh.name,
-               orig:(sh.original_name&&sh.original_name!==sh.name)?sh.original_name:"",
+      return titoloLeggibile(sh.id,sh.name,"").then(function(titolo){
+      return { title:titolo||sh.name,
+               orig:(sh.original_name&&sh.original_name!==titolo)?sh.original_name:"",
                year:(sh.first_air_date||"").slice(0,4),
                poster:tmdbImg(sh.poster_path), seasons:pack(bys),
                ended:fin, pstat:sh.status||"",
                src:{p:"tmdb",id:sh.id} };
+      });   // fine titoloLeggibile
     });
   });
 }
@@ -1474,6 +1476,23 @@ function applyFetched(s,o){
 function tmdbDetail(id){
   return getJSON("https://api.themoviedb.org/3/tv/"+id+"?language=it-IT&api_key="+encodeURIComponent(tmdbKey()));
 }
+/* Titolo in alfabeto non latino (coreano, giapponese, cinese, cirillico, ebraico,
+   arabo, thai): non va bene come titolo principale, serve come originale.    */
+function nonLatino(t){
+  t=String(t||"");
+  // si contano le lettere: un titolo coreano con una X in mezzo resta coreano
+  var altri =(t.match(/[぀-ヿ㐀-鿿가-힯Ѐ-ӿ֐-׿؀-ۿ฀-๿]/g)||[]).length;
+  var latini=(t.match(/[A-Za-zÀ-ɏ]/g)||[]).length;
+  return altri>0 && altri>=latini;
+}
+/* Quando TMDb non ha l'italiano restituisce l'originale: se è illeggibile per
+   noi, chiedo la versione inglese. Una chiamata in più solo in quei casi.     */
+function titoloLeggibile(id,nomeIt,attuale){
+  if(!nonLatino(nomeIt)) return Promise.resolve(nomeIt);
+  return getJSON("https://api.themoviedb.org/3/tv/"+id+"?language=en-US&api_key="+encodeURIComponent(tmdbKey()))
+    .then(function(en){ return (en.name && !nonLatino(en.name)) ? en.name : (attuale||nomeIt) })
+    .catch(function(){ return attuale||nomeIt });
+}
 /* Dove si vede adesso: TMDb espone i dati di JustWatch per paese. Prendiamo solo
    le piattaforme in abbonamento (flatrate): noleggio e acquisto non rispondono
    alla domanda "ce l'ho già compreso in un abbonamento?".                     */
@@ -1534,9 +1553,11 @@ function syncShow(s){
         s.meta=null; s.piatt=null; s.piattLink=""; tocca(s,false);
         return null;
       }
-      var nome=(d.name||"").trim();
-      if(nome && nome!==s.title){ res.titolo=s.title+" → "+nome; s.title=nome }
-      if(d.original_name && d.original_name!==nome) s.orig=d.original_name;
+      return titoloLeggibile(m.id,(d.name||"").trim(),s.title).then(function(nome){
+      // se il titolo attuale è illeggibile e ne abbiamo trovato uno leggibile, lo sostituisce;
+      // il titolo originale conserva comunque la grafia d'origine
+      if(nome && nome!==s.title && !nonLatino(nome)){ res.titolo=s.title+" → "+nome; s.title=nome }
+      if(d.original_name && d.original_name!==s.title) s.orig=d.original_name;
       if(d.poster_path) s.poster=tmdbImg(d.poster_path);
       if(d.first_air_date) s.year=(d.first_air_date||"").slice(0,4);
       s.ended=!(d.status==="Returning Series"||d.status==="In Production");
@@ -1549,6 +1570,7 @@ function syncShow(s){
           return null;
         });
       return null;
+      });   // fine titoloLeggibile
     }).catch(function(){ return null });
   }).then(function(){
     // non solo "è cambiato", ma in quale direzione
