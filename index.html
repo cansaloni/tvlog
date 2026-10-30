@@ -357,7 +357,7 @@
   <a href="https://www.justwatch.com" target="_blank" rel="noopener" style="color:#6b7888">JustWatch</a>
   via TMDb.<br>
   Segnalazioni e suggerimenti: <span class="posta"></span>
-  · <span title="Serve a capire se un dispositivo sta usando una versione vecchia">versione del 30 ottobre 2026 · b</span>
+  · <span title="Serve a capire se un dispositivo sta usando una versione vecchia">versione del 30 ottobre 2026 · c</span>
 </footer>
 
 <div class="ov" id="ovAdd">
@@ -964,7 +964,10 @@ function detailHtml(s){
     '<textarea class="fld" rows="2" data-f="note" data-i="'+s.id+'" '+
       'placeholder="es. mollata a metà stagione 3">'+esc(s.note||"")+'</textarea>'+
     (s.src?'<div class="acts"><button class="btn sm" data-a="sync" data-i="'+s.id+
-      '">⟳ Aggiorna dalla fonte</button></div>':'')+
+      '">⟳ Aggiorna dalla fonte</button>'+
+      (s.meta?'<button class="btn sm" data-a="relink" data-i="'+s.id+
+      '" title="Se titolo, locandina o piattaforme sono di un\'altra serie">⟲ Ricollega</button>':'')+
+      '</div>':'')+
     '<div class="fin">'+esc(fonte)+' Le modifiche si salvano da sole quando esci dal campo.</div>'+
   '</div>';
 }
@@ -1018,6 +1021,14 @@ document.addEventListener("click",function(ev){
     var v=Number(b.dataset.v);
     s.rating = (s.rating===v) ? 0 : v;
     tocca(s,true); render(); return;
+  }
+  if(a==="relink"){
+    // dimentica la scheda TMDb agganciata e la ricerca da capo, con il controllo di coerenza
+    s.meta=null; s.piatt=null; s.piattLink=""; tocca(s,false);
+    b.textContent="…";
+    syncShow(s).then(function(){ render(); toast(s.meta?"Ricollegata a «"+s.title+"»":"Nessuna scheda TMDb coerente trovata") })
+      .catch(function(){ render(); toast("Ricollegamento non riuscito") });
+    return;
   }
   if(a==="sync"){
     b.textContent="…";
@@ -1477,6 +1488,18 @@ function tmdbPiattaforme(id){
     })
     .catch(function(){ return null });
 }
+/* La scheda TMDb proposta è davvero la stessa serie? Basta che coincida
+   l'anno (±1) oppure uno dei titoli. Serve perché gli identificativi
+   incrociati fra database ogni tanto sono sbagliati, e un aggancio
+   sbagliato porterebbe titolo, locandina e piattaforme di un'altra serie. */
+function coerente(s,d){
+  var ys=parseInt(s.year,10), yd=parseInt((d.first_air_date||"").slice(0,4),10);
+  if(ys && yd && Math.abs(ys-yd)<=1) return true;
+  var n=function(t){ return String(t||"").toLowerCase().replace(/[^a-z0-9à-ü]/g,"") };
+  var miei=[n(s.title),n(s.orig)].filter(Boolean), suoi=[n(d.name),n(d.original_name)].filter(Boolean);
+  return miei.some(function(a){ return suoi.indexOf(a)>-1 });
+}
+
 function resolveMeta(s,imdb){
   if(s.meta) return Promise.resolve(s.meta);
   if(s.src && s.src.p==="tmdb"){ s.meta={p:"tmdb",id:s.src.id}; return Promise.resolve(s.meta) }
@@ -1484,7 +1507,8 @@ function resolveMeta(s,imdb){
   return getJSON("https://api.themoviedb.org/3/find/"+encodeURIComponent(imdb)+
                  "?external_source=imdb_id&language=it-IT&api_key="+encodeURIComponent(tmdbKey()))
     .then(function(f){
-      var r=(f.tv_results||[])[0];
+      // fra i risultati prendo il primo che è davvero questa serie, non il primo e basta
+      var r=(f.tv_results||[]).filter(function(x){ return coerente(s,x) })[0];
       if(!r) return null;
       s.meta={p:"tmdb",id:r.id};
       return s.meta;
@@ -1503,6 +1527,13 @@ function syncShow(s){
   }).then(function(m){
     if(!m) return null;
     return tmdbDetail(m.id).then(function(d){
+      // la scheda TMDb agganciata è davvero questa serie? Se no, la si scollega:
+      // meglio nessun dato in più che i dati di un'altra serie
+      if(!coerente(s,d)){
+        res.scollegata=s.title+" (era agganciata a «"+(d.name||"?")+"»)";
+        s.meta=null; s.piatt=null; s.piattLink=""; tocca(s,false);
+        return null;
+      }
       var nome=(d.name||"").trim();
       if(nome && nome!==s.title){ res.titolo=s.title+" → "+nome; s.title=nome }
       if(d.original_name && d.original_name!==nome) s.orig=d.original_name;
@@ -1701,7 +1732,7 @@ document.getElementById("bRef").onclick=function(){
   var bar=document.getElementById("iBar"), msg=document.getElementById("iMsg"),
       log=document.getElementById("iLog");
   log.innerHTML="";
-  var ok=0, err=0, nuovi=0, cambiate=[], titoli=[], stati=[], nuoviEp=[];
+  var ok=0, err=0, nuovi=0, cambiate=[], titoli=[], stati=[], nuoviEp=[], scollegate=[];
 
   function step(k){
     if(impStop || k>=list.length){
@@ -1727,6 +1758,7 @@ document.getElementById("bRef").onclick=function(){
         '</span></span></div>'+
         blk("Doppioni uniti",fuse.map(function(x){
               return x.titolo+(x.visti?" ("+x.visti+" ep trasferiti nella scheda rimasta)":"") }))+
+        blk("Scollegate da una scheda TMDb sbagliata",scollegate)+
         blk("Stato di produzione corretto",stati)+
         blk("Episodi nuovi",nuoviEp)+
         blk("Hanno cambiato colonna",cambiate)+
@@ -1744,6 +1776,7 @@ document.getElementById("bRef").onclick=function(){
     syncShow(s).then(function(r){
       ok++; nuovi+=r.nuovi;
       if(r.titolo) titoli.push(r.titolo);
+      if(r.scollegata) scollegate.push(r.scollegata);
       if(r.stato) stati.push(s.title+": "+r.stato);
       if(r.nuovi) nuoviEp.push(s.title+" +"+r.nuovi);
       if(s.status!==was) cambiate.push(s.title+": "+NOMI[was]+" → "+NOMI[s.status]);
