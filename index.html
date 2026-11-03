@@ -3,8 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Le mie serie</title>
+<title>tvlog — le mie serie</title>
 <meta name="theme-color" content="#0f1216">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
 <style>
   :root{
     --bg:#0f1216; --panel:#171b21; --panel2:#1e242c; --line:#2a323c;
@@ -51,8 +55,20 @@
        grid-template-columns:repeat(auto-fit,minmax(255px,1fr))}
 
   /* ---- pagina di benvenuto, per chi arriva senza account ---- */
-  #benvenuto{padding:26px 16px 10px}
-  .bw{max-width:760px; margin:0 auto}
+  #benvenuto{padding:26px 16px 10px; position:relative; overflow:hidden; min-height:70vh}
+  /* collage di locandine dietro il testo: scaricate da TMDb all'apertura,
+     inclinato e sfumato verso il basso così il testo resta leggibile */
+  #collage{position:absolute; inset:-12% -8%; z-index:0; pointer-events:none;
+           display:grid; grid-template-columns:repeat(8,1fr); gap:10px;
+           transform:rotate(-7deg); opacity:0; transition:opacity 1.4s ease}
+  #collage.on{opacity:1}
+  #collage img{width:100%; aspect-ratio:2/3; object-fit:cover; border-radius:8px;
+               filter:saturate(.8) brightness(.7)}
+  #collage img:nth-child(odd){transform:translateY(40%)}
+  #benvenuto::after{content:""; position:absolute; inset:0; z-index:1; pointer-events:none;
+    background:linear-gradient(180deg, rgba(15,18,22,.45) 0%, rgba(15,18,22,.84) 45%, var(--bg) 100%)}
+  @media (max-width:640px){ #collage{grid-template-columns:repeat(4,1fr); gap:7px} }
+  .bw{max-width:760px; margin:0 auto; position:relative; z-index:2}
   .bw h2{font-size:25px; margin:0 0 10px; letter-spacing:-.4px}
   .occhiello{color:var(--dim); font-size:15px; margin:0 0 22px; line-height:1.55}
   .bgrid{display:grid; gap:12px; grid-template-columns:repeat(4,1fr)}
@@ -292,6 +308,7 @@
 </header>
 
 <section id="benvenuto" hidden>
+  <div id="collage" aria-hidden="true"></div>
   <div class="bw">
     <h2>Tieni il conto delle serie che guardi</h2>
     <p class="occhiello">
@@ -360,7 +377,7 @@
   <a href="https://www.justwatch.com" target="_blank" rel="noopener" style="color:#6b7888">JustWatch</a>
   via TMDb.<br>
   Segnalazioni e suggerimenti: <span class="posta"></span>
-  · <span title="Serve a capire se un dispositivo sta usando una versione vecchia">versione del 2 novembre 2026 · b</span>
+  · <span title="Serve a capire se un dispositivo sta usando una versione vecchia">versione del 3 novembre 2026</span>
 </footer>
 
 <div class="ov" id="ovAdd">
@@ -770,10 +787,42 @@ function avvisoRete(){
   av.hidden=!(typeof reteKO!=="undefined" && reteKO);
 }
 
+/* sfondo della presentazione: le locandine delle serie "epiche" — le meglio
+   giudicate su TMDb fra quelle votate da migliaia di persone (Breaking Bad,
+   Better Call Saul, The Wire…) — più qualche novità del momento. Animazione,
+   programmi per bambini e reality esclusi. Se non arrivano, resta il fondo scuro. */
+function collage(){
+  if(collage._fatto) return; collage._fatto=true;
+  var box=document.getElementById("collage");
+  var k=encodeURIComponent(tmdbKey());
+  function pagina(url){
+    return fetch(url+"&language=it-IT&api_key="+k)
+      .then(function(r){ return r.ok?r.json():{results:[]} }).catch(function(){ return {results:[]} });
+  }
+  var classici="https://api.themoviedb.org/3/discover/tv?sort_by=vote_average.desc&vote_count.gte=4000"+
+               "&without_genres=16,10762,10764,10767&include_null_first_air_dates=false";
+  Promise.all([pagina(classici+"&page=1"), pagina(classici+"&page=2"),
+               pagina("https://api.themoviedb.org/3/tv/popular?page=1")])
+  .then(function(pagine){
+    var poster=[];
+    function prendi(d,n){ var c=0; (d.results||[]).forEach(function(s){
+      if(c<n && s.poster_path && poster.indexOf(s.poster_path)<0){ poster.push(s.poster_path); c++ } }) }
+    prendi(pagine[0],20); prendi(pagine[1],6); prendi(pagine[2],6);
+    // mescolate, così le novità non stanno tutte in fondo
+    for(var i=poster.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)), x=poster[i]; poster[i]=poster[j]; poster[j]=x }
+    if(!poster.length) return;
+    box.innerHTML=poster.map(function(p){
+      return '<img src="https://image.tmdb.org/t/p/w342'+esc(p)+'" alt="" loading="lazy" decoding="async">';
+    }).join("");
+    requestAnimationFrame(function(){ box.classList.add("on") });
+  });
+}
+
 /* chi arriva senza account vede la presentazione, non quattro colonne vuote */
 function vetrina(){
   var vuoto = !(typeof connesso==="function" && connesso());
   document.getElementById("benvenuto").hidden=!vuoto;
+  if(vuoto) collage();
   document.querySelector("main").hidden=vuoto;
   document.getElementById("tabBar").hidden=vuoto;
   document.getElementById("ordMobWrap").hidden=vuoto;
