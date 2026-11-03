@@ -55,20 +55,26 @@
        grid-template-columns:repeat(auto-fit,minmax(255px,1fr))}
 
   /* ---- pagina di benvenuto, per chi arriva senza account ---- */
-  #benvenuto{padding:26px 16px 10px; position:relative; overflow:hidden; min-height:70vh}
-  /* collage di locandine dietro il testo: scaricate da TMDb all'apertura,
-     inclinato e sfumato verso il basso così il testo resta leggibile */
-  #collage{position:absolute; inset:-12% -8%; z-index:0; pointer-events:none;
-           display:grid; grid-template-columns:repeat(8,1fr); gap:10px;
+  #benvenuto{padding:26px 16px 10px; min-height:70vh}
+  /* collage di locandine dietro a tutta la pagina: scaricate da TMDb
+     all'apertura, inclinate e coperte da un velo scuro. Nella presentazione
+     il velo è leggero e sfuma verso il basso; dentro il tracker è più fitto,
+     così le schede restano leggibili e lo sfondo è solo un'atmosfera.     */
+  #collage{position:fixed; inset:-12% -8%; z-index:0; pointer-events:none;
+           display:grid; grid-template-columns:repeat(8,1fr); gap:10px; align-content:start;
            transform:rotate(-7deg); opacity:0; transition:opacity 1.4s ease}
   #collage.on{opacity:1}
   #collage img{width:100%; aspect-ratio:2/3; object-fit:cover; border-radius:8px;
                filter:saturate(.8) brightness(.7)}
   #collage img:nth-child(odd){transform:translateY(40%)}
-  #benvenuto::after{content:""; position:absolute; inset:0; z-index:1; pointer-events:none;
+  #velo{position:fixed; inset:0; z-index:0; pointer-events:none;
     background:linear-gradient(180deg, rgba(15,18,22,.45) 0%, rgba(15,18,22,.84) 45%, var(--bg) 100%)}
+  body.dentro #velo{background:rgba(15,18,22,.8)}
+  body.dentro #collage img{filter:saturate(.6) brightness(.5)}
   @media (max-width:640px){ #collage{grid-template-columns:repeat(4,1fr); gap:7px} }
-  .bw{max-width:760px; margin:0 auto; position:relative; z-index:2}
+  /* tutto il resto sta sopra lo sfondo */
+  #benvenuto,#tabBar,#ordMobWrap,main,footer{position:relative; z-index:1}
+  .bw{max-width:760px; margin:0 auto}
   .bw h2{font-size:25px; margin:0 0 10px; letter-spacing:-.4px}
   .occhiello{color:var(--dim); font-size:15px; margin:0 0 22px; line-height:1.55}
   .bgrid{display:grid; gap:12px; grid-template-columns:repeat(4,1fr)}
@@ -307,8 +313,9 @@
   </div>
 </header>
 
+<div id="collage" aria-hidden="true"></div>
+<div id="velo" aria-hidden="true"></div>
 <section id="benvenuto" hidden>
-  <div id="collage" aria-hidden="true"></div>
   <div class="bw">
     <h2>Tieni il conto delle serie che guardi</h2>
     <p class="occhiello">
@@ -822,7 +829,7 @@ function collage(){
 function vetrina(){
   var vuoto = !(typeof connesso==="function" && connesso());
   document.getElementById("benvenuto").hidden=!vuoto;
-  if(vuoto) collage();
+  document.body.classList.toggle("dentro",!vuoto);
   document.querySelector("main").hidden=vuoto;
   document.getElementById("tabBar").hidden=vuoto;
   document.getElementById("ordMobWrap").hidden=vuoto;
@@ -2164,7 +2171,7 @@ try{
    precedenti e l'account è vuoto, la copia viene caricata una volta sola;
    in ogni caso poi viene eliminata, perché l'unica copia è quella sul server. */
 function avvio(){
-  render(); accUI();
+  collage(); render(); accUI();
   if(!connesso()) return;
   COLS.forEach(function(t){ document.getElementById("c-"+t).querySelector(".clist").innerHTML='<div class="empty">Lettura dal server…</div>' });
   ricarica().then(function(){
