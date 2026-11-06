@@ -384,7 +384,7 @@
   <a href="https://www.justwatch.com" target="_blank" rel="noopener" style="color:#6b7888">JustWatch</a>
   via TMDb.<br>
   Segnalazioni e suggerimenti: <span class="posta"></span>
-  · <span title="Serve a capire se un dispositivo sta usando una versione vecchia">versione del 3 novembre 2026</span>
+  · <span title="Serve a capire se un dispositivo sta usando una versione vecchia">versione del 6 novembre 2026</span>
 </footer>
 
 <div class="ov" id="ovAdd">
@@ -1445,6 +1445,13 @@ function addShow(o){
   ovAdd.classList.remove("on");
   render();
   toast("«"+s.title+"» aggiunta a Da vedere"+(s.total?" · "+s.seasons.length+" stagioni, "+s.total+" episodi":""));
+  // dove si vede: lo si chiede subito, senza aspettare il prossimo "Aggiorna tutte"
+  if(tmdbKey()) resolveMeta(s, o.imdb || (o.src&&o.src.p==="omdb"?o.src.id:"")).then(function(m){
+    if(!m) return null;
+    return tmdbPiattaforme(m.id).then(function(p){
+      if(p && db.shows.indexOf(s)>-1){ s.piatt=p.nomi; s.piattLink=p.link; s.piattQuando=Date.now(); tocca(s,false); render() }
+    });
+  }).catch(function(){});
 }
 
 /* ============ pannello dettagli: i campi si applicano da soli ============ */
